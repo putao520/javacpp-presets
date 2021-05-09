@@ -7,7 +7,7 @@ if [[ -z "$PLATFORM" ]]; then
     exit
 fi
 
-OPENBLAS_VERSION=0.3.7
+OPENBLAS_VERSION=0.3.14
 
 download https://github.com/xianyi/OpenBLAS/archive/v$OPENBLAS_VERSION.tar.gz OpenBLAS-$OPENBLAS_VERSION.tar.gz
 
@@ -23,12 +23,18 @@ tar --totals -xzf ../OpenBLAS-$OPENBLAS_VERSION.tar.gz --strip-components=1 -C O
 cd OpenBLAS-$OPENBLAS_VERSION
 cp lapack-netlib/LAPACKE/include/*.h ../include
 
+# remove broken cross-compiler workaround on Mac
+sedinplace '/if (($os eq "Darwin")/,/}/d' c_check ../OpenBLAS-$OPENBLAS_VERSION-nolapack/c_check
+sedinplace 's/common.h/param.h/g' getarch_2nd.c ../OpenBLAS-$OPENBLAS_VERSION-nolapack/getarch_2nd.c
+
 # blas (requires fortran, e.g. sudo yum install gcc-gfortran)
+export FEXTRALIB="-lgfortran"
 export CROSS_SUFFIX=
 export HOSTCC=gcc
 export NO_LAPACK=0
 export NUM_THREADS=64
 export NO_AFFINITY=1
+export NO_AVX512=1
 case $PLATFORM in
     android-arm)
         patch -Np1 < ../../../OpenBLAS-android.patch
@@ -141,6 +147,7 @@ case $PLATFORM in
         export LDFLAGS='-s -Wl,-rpath,\$$ORIGIN/'
         export BINARY=32
         export DYNAMIC_ARCH=1
+        export TARGET=NORTHWOOD
         ;;
     linux-x86_64)
         export CC="gcc -m64"
@@ -148,6 +155,8 @@ case $PLATFORM in
         export LDFLAGS='-s -Wl,-rpath,\$$ORIGIN/'
         export BINARY=64
         export DYNAMIC_ARCH=1
+        export TARGET=NEHALEM
+        export NO_AVX512=0
         ;;
     linux-ppc64le)
         # patch to use less buggy generic kernels
@@ -192,26 +201,30 @@ case $PLATFORM in
         patch -Np1 -d ../OpenBLAS-$OPENBLAS_VERSION-nolapack/ < ../../../OpenBLAS-macosx.patch
         export CC="$(ls -1 /usr/local/bin/gcc-? | head -n 1)"
         export FC="$(ls -1 /usr/local/bin/gfortran-? | head -n 1)"
-        export LDFLAGS='-s -Wl,-rpath,@loader_path/'
+        export LDFLAGS='-s -Wl,-rpath,@loader_path/ -lgfortran'
         export BINARY=64
         export DYNAMIC_ARCH=1
-        export LDFLAGS="-static-libgcc -static-libgfortran -lgfortran /usr/local/lib/gcc/?/libquadmath.a"
         export NO_AVX512=1
+        export TARGET=NEHALEM
         ;;
     windows-x86)
         export CC="gcc -m32"
         export FC="gfortran -m32"
+        export FEXTRALIB="-lgfortran -lquadmath"
         export BINARY=32
         export DYNAMIC_ARCH=1
-        export LDFLAGS="-static-libgcc -static-libgfortran -Wl,-Bstatic -lgfortran -lgcc -lgcc_eh -lpthread"
+        export LDFLAGS="-static-libgcc -static-libgfortran -Wl,-Bstatic -lgfortran -lquadmath -lgcc -lgcc_eh -lpthread"
+        export TARGET=NORTHWOOD
         ;;
     windows-x86_64)
         export CC="gcc -m64"
         export FC="gfortran -m64"
+        export FEXTRALIB="-lgfortran -lquadmath"
         export BINARY=64
         export DYNAMIC_ARCH=1
-        export LDFLAGS="-static-libgcc -static-libgfortran -Wl,-Bstatic -lgfortran -lgcc -lgcc_eh -lpthread"
+        export LDFLAGS="-static-libgcc -static-libgfortran -Wl,-Bstatic -lgfortran -lquadmath -lgcc -lgcc_eh -lpthread"
         export NO_AVX512=1
+        export TARGET=NEHALEM
         ;;
     *)
         echo "Error: Platform \"$PLATFORM\" is not supported"
@@ -219,15 +232,12 @@ case $PLATFORM in
         ;;
 esac
 
-make -s -j $MAKEJ libs netlib shared "CROSS_SUFFIX=$CROSS_SUFFIX" "CC=$CC" "FC=$FC" "HOSTCC=$HOSTCC" BINARY=$BINARY COMMON_PROF= F_COMPILER=GFORTRAN USE_OPENMP=0 NUM_THREADS=$NUM_THREADS
+make -s -j $MAKEJ libs netlib shared "CROSS_SUFFIX=$CROSS_SUFFIX" "CC=$CC" "FC=$FC" "HOSTCC=$HOSTCC" BINARY=$BINARY COMMON_PROF= F_COMPILER=GFORTRAN "FEXTRALIB=$FEXTRALIB" USE_OPENMP=0 NUM_THREADS=$NUM_THREADS NO_AVX512=$NO_AVX512
 make install "PREFIX=$INSTALL_PATH"
 
 unset DYNAMIC_ARCH
-if [[ -z ${TARGET:-} ]]; then
-    export TARGET=GENERIC
-fi
 cd ../OpenBLAS-$OPENBLAS_VERSION-nolapack/
-make -s -j $MAKEJ libs netlib shared "CROSS_SUFFIX=$CROSS_SUFFIX" "CC=$CC" "FC=$FC" "HOSTCC=$HOSTCC" BINARY=$BINARY COMMON_PROF= F_COMPILER=GFORTRAN USE_OPENMP=0 NUM_THREADS=$NUM_THREADS NO_LAPACK=1 LIBNAMESUFFIX=nolapack
+make -s -j $MAKEJ libs netlib shared "CROSS_SUFFIX=$CROSS_SUFFIX" "CC=$CC" "FC=$FC" "HOSTCC=$HOSTCC" BINARY=$BINARY COMMON_PROF= F_COMPILER=GFORTRAN "FEXTRALIB=$FEXTRALIB" USE_OPENMP=0 NUM_THREADS=$NUM_THREADS NO_AVX512=$NO_AVX512 NO_LAPACK=1 LIBNAMESUFFIX=nolapack
 make install "PREFIX=$INSTALL_PATH" NO_LAPACK=1 LIBNAMESUFFIX=nolapack
 
 unset CC
@@ -237,6 +247,7 @@ unset LDFLAGS
 if [[ -f ../lib/libopenblas.dll.a ]]; then
     # bundle the import library for Windows under a friendly name for MSVC
     cp ../lib/libopenblas.dll.a ../lib/openblas.lib
+    cp ../lib/libopenblas_nolapack.dll.a ../lib/openblas_nolapack.lib
 fi
 
 cd ../..

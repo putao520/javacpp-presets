@@ -6,33 +6,31 @@
   <parent>
     <groupId>org.bytedeco</groupId>
     <artifactId>javacpp-presets</artifactId>
-    <version>1.5.3-SNAPSHOT</version>
+    <version>1.5.6-SNAPSHOT</version>
   </parent>
 
   <groupId>org.bytedeco</groupId>
   <artifactId>mxnet</artifactId>
-  <version>1.5.1-${project.parent.version}</version>
+  <version>1.8.0-${project.parent.version}</version>
   <name>JavaCPP Presets for MXNet</name>
 
   <properties>
-    <javacpp.mkldnn.platform>${javacpp.platform}</javacpp.mkldnn.platform>
+    <javacpp.nativeRequires>
+      requires org.bytedeco.opencv.${javacpp.platform.module};
+      requires org.bytedeco.openblas.${javacpp.platform.module};
+    </javacpp.nativeRequires>
   </properties>
 
   <dependencies>
     <dependency>
       <groupId>org.bytedeco</groupId>
       <artifactId>opencv</artifactId>
-      <version>4.1.2-${project.parent.version}</version>
+      <version>4.5.2-${project.parent.version}</version>
     </dependency>
     <dependency>
       <groupId>org.bytedeco</groupId>
       <artifactId>openblas</artifactId>
-      <version>0.3.7-${project.parent.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.bytedeco</groupId>
-      <artifactId>mkl-dnn</artifactId>
-      <version>0.21.2-${project.parent.version}</version>
+      <version>0.3.14-${project.parent.version}</version>
     </dependency>
     <dependency>
       <groupId>org.bytedeco</groupId>
@@ -83,35 +81,24 @@
           <dependency>
             <groupId>org.bytedeco</groupId>
             <artifactId>opencv</artifactId>
-            <version>4.1.2-${project.parent.version}</version>
+            <version>4.5.2-${project.parent.version}</version>
           </dependency>
           <dependency>
             <groupId>org.bytedeco</groupId>
             <artifactId>openblas</artifactId>
-            <version>0.3.7-${project.parent.version}</version>
-          </dependency>
-          <dependency>
-            <groupId>org.bytedeco</groupId>
-            <artifactId>mkl-dnn</artifactId>
-            <version>0.21.2-${project.parent.version}</version>
+            <version>0.3.14-${project.parent.version}</version>
           </dependency>
           <dependency>
             <groupId>org.bytedeco</groupId>
             <artifactId>opencv</artifactId>
-            <version>4.1.2-${project.parent.version}</version>
+            <version>4.5.2-${project.parent.version}</version>
             <classifier>${javacpp.platform}</classifier>
           </dependency>
           <dependency>
             <groupId>org.bytedeco</groupId>
             <artifactId>openblas</artifactId>
-            <version>0.3.7-${project.parent.version}</version>
+            <version>0.3.14-${project.parent.version}</version>
             <classifier>${javacpp.platform}</classifier>
-          </dependency>
-          <dependency>
-            <groupId>org.bytedeco</groupId>
-            <artifactId>mkl-dnn</artifactId>
-            <version>0.21.2-${project.parent.version}</version>
-            <classifier>${javacpp.mkldnn.platform}</classifier>
           </dependency>
           <!-- Use JavaCPP to get correct class path for scala-maven-plugin as ${javacpp.platform.artifacts} below -->
           <dependency>
@@ -309,9 +296,6 @@
           <value>linux-x86</value>
         </property>
       </activation>
-      <properties>
-        <javacpp.mkldnn.platform>linux-x86_64</javacpp.mkldnn.platform>
-      </properties>
       <build>
         <plugins>
           <plugin>
@@ -321,13 +305,13 @@
               <dependency>
                 <groupId>org.bytedeco</groupId>
                 <artifactId>opencv</artifactId>
-                <version>4.1.2-${project.parent.version}</version>
+                <version>4.5.2-${project.parent.version}</version>
                 <classifier>linux-x86_64</classifier>
               </dependency>
               <dependency>
                 <groupId>org.bytedeco</groupId>
                 <artifactId>openblas</artifactId>
-                <version>0.3.7-${project.parent.version}</version>
+                <version>0.3.14-${project.parent.version}</version>
                 <classifier>linux-x86_64</classifier>
               </dependency>
               <dependency>

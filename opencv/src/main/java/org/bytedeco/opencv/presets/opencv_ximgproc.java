@@ -33,14 +33,17 @@ import org.bytedeco.javacpp.tools.InfoMapper;
  * @author Samuel Audet
  */
 @Properties(
-    inherit = opencv_calib3d.class,
+    inherit = opencv_video.class,
     value = {
         @Platform(include = {"<opencv2/ximgproc.hpp>", "opencv2/ximgproc/edge_filter.hpp", "opencv2/ximgproc/disparity_filter.hpp",
-            "opencv2/ximgproc/sparse_match_interpolator.hpp", "opencv2/ximgproc/structured_edge_detection.hpp", "opencv2/ximgproc/seeds.hpp",
-            "opencv2/ximgproc/segmentation.hpp", "opencv2/ximgproc/fast_hough_transform.hpp", "opencv2/ximgproc/estimated_covariance.hpp",
-            "opencv2/ximgproc/slic.hpp", "opencv2/ximgproc/lsc.hpp"}, link = "opencv_ximgproc@.4.1"),
+            "opencv2/ximgproc/sparse_match_interpolator.hpp", "opencv2/ximgproc/structured_edge_detection.hpp", "opencv2/ximgproc/edgeboxes.hpp", "opencv2/ximgproc/seeds.hpp",
+            "opencv2/ximgproc/segmentation.hpp", "opencv2/ximgproc/fast_hough_transform.hpp", "opencv2/ximgproc/estimated_covariance.hpp", "opencv2/ximgproc/weighted_median_filter.hpp",
+            "opencv2/ximgproc/slic.hpp", "opencv2/ximgproc/lsc.hpp", "opencv2/ximgproc/paillou_filter.hpp", "opencv2/ximgproc/fast_line_detector.hpp",
+            "opencv2/ximgproc/deriche_filter.hpp", "opencv2/ximgproc/peilin.hpp", "opencv2/ximgproc/fourier_descriptors.hpp", "opencv2/ximgproc/ridgefilter.hpp",
+            "opencv2/ximgproc/brightedges.hpp", "opencv2/ximgproc/run_length_morphology.hpp", "opencv2/ximgproc/edgepreserving_filter.hpp",
+            "opencv2/ximgproc/color_match.hpp"}, link = "opencv_ximgproc@.4.5"),
         @Platform(value = "ios", preload = "libopencv_ximgproc"),
-        @Platform(value = "windows", link = "opencv_ximgproc412")},
+        @Platform(value = "windows", link = "opencv_ximgproc452")},
     target = "org.bytedeco.opencv.opencv_ximgproc",
     global = "org.bytedeco.opencv.global.opencv_ximgproc"
 )

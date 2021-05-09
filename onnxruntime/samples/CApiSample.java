@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 //
 
-import java.nio.file.*;
 import org.bytedeco.javacpp.*;
 import org.bytedeco.javacpp.indexer.*;
 import org.bytedeco.onnxruntime.*;
@@ -43,16 +42,18 @@ public class CApiSample {
       // Optionally add more execution providers via session_options
       // E.g. for CUDA include cuda_provider_factory.h and uncomment the following line:
       // OrtSessionOptionsAppendExecutionProvider_CUDA(sessionOptions, 0);
+      OrtSessionOptionsAppendExecutionProvider_Dnnl(session_options, 1);
 
       //*************************************************************************
       // create session and load model into memory
       // using squeezenet version 1.3
       // URL = https://github.com/onnx/models/tree/master/squeezenet
       PointerPointer<OrtSession> sessions = new PointerPointer<OrtSession>(1);
-      String model_path = args.length > 0 ? args[0] : "squeezenet.onnx";
+      String s = args.length > 0 ? args[0] : "squeezenet.onnx";
+      Pointer model_path = Loader.getPlatform().startsWith("windows") ? new CharPointer(s) : new BytePointer(s);
 
       System.out.println("Using Onnxruntime C API");
-      CheckStatus(g_ort.CreateSession().call(env, new BytePointer(model_path), session_options, sessions));
+      CheckStatus(g_ort.CreateSession().call(env, model_path, session_options, sessions));
       OrtSession session = sessions.get(OrtSession.class);
 
       //*************************************************************************

@@ -6,13 +6,13 @@
   <parent>
     <groupId>org.bytedeco</groupId>
     <artifactId>javacpp-presets</artifactId>
-    <version>1.5.3-SNAPSHOT</version>
+    <version>1.5.6-SNAPSHOT</version>
     <relativePath>../../../</relativePath>
   </parent>
 
   <groupId>org.bytedeco</groupId>
   <artifactId>tensorflow-platform-python</artifactId>
-  <version>1.15.0-${project.parent.version}</version>
+  <version>1.15.5-${project.parent.version}</version>
   <name>JavaCPP Presets Platform Python for TensorFlow</name>
 
   <properties>
@@ -24,12 +24,12 @@
     <dependency>
       <groupId>org.bytedeco</groupId>
       <artifactId>numpy-platform</artifactId>
-      <version>1.17.3-${project.parent.version}</version>
+      <version>1.20.2-${project.parent.version}</version>
     </dependency>
     <dependency>
       <groupId>org.bytedeco</groupId>
       <artifactId>mkl-dnn-platform</artifactId>
-      <version>0.21.2-${project.parent.version}</version>
+      <version>0.21.5-${project.parent.version}</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
@@ -110,10 +110,10 @@
                 <module>
                   <file>${project.build.directory}/${project.artifactId}.jar</file>
                   <moduleInfoSource>
-                    module org.bytedeco.${javacpp.moduleId}.platform {
-                      requires org.bytedeco.${javacpp.moduleId}.linux.x86_64.python;
-                      requires org.bytedeco.${javacpp.moduleId}.macosx.x86_64.python;
-                      requires org.bytedeco.${javacpp.moduleId}.windows.x86_64.python;
+                    module org.bytedeco.${javacpp.moduleId}.platform.python {
+                      requires static org.bytedeco.${javacpp.moduleId}.linux.x86_64.python;
+                      requires static org.bytedeco.${javacpp.moduleId}.macosx.x86_64.python;
+                      requires static org.bytedeco.${javacpp.moduleId}.windows.x86_64.python;
                     }
                   </moduleInfoSource>
                 </module>

@@ -1,11 +1,15 @@
 JavaCPP Presets for OpenBLAS
 ============================
 
+[![Gitter](https://badges.gitter.im/bytedeco/javacpp.svg)](https://gitter.im/bytedeco/javacpp) [![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.bytedeco/openblas/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.bytedeco/openblas) [![Sonatype Nexus (Snapshots)](https://img.shields.io/nexus/s/https/oss.sonatype.org/org.bytedeco/openblas.svg)](http://bytedeco.org/builds/)  
+<sup>Build status for all platforms:</sup> [![openblas](https://github.com/bytedeco/javacpp-presets/workflows/openblas/badge.svg)](https://github.com/bytedeco/javacpp-presets/actions?query=workflow%3Aopenblas)  <sup>Commercial support:</sup> [![xscode](https://img.shields.io/badge/Available%20on-xs%3Acode-blue?style=?style=plastic&logo=appveyor&logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAMAAACdt4HsAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAAZQTFRF////////VXz1bAAAAAJ0Uk5T/wDltzBKAAAAlUlEQVR42uzXSwqAMAwE0Mn9L+3Ggtgkk35QwcnSJo9S+yGwM9DCooCbgn4YrJ4CIPUcQF7/XSBbx2TEz4sAZ2q1RAECBAiYBlCtvwN+KiYAlG7UDGj59MViT9hOwEqAhYCtAsUZvL6I6W8c2wcbd+LIWSCHSTeSAAECngN4xxIDSK9f4B9t377Wd7H5Nt7/Xz8eAgwAvesLRjYYPuUAAAAASUVORK5CYII=)](https://xscode.com/bytedeco/javacpp-presets)
+
+
 Introduction
 ------------
 This directory contains the JavaCPP Presets module for:
 
- * OpenBLAS 0.3.7  http://www.openblas.net/
+ * OpenBLAS 0.3.14  http://www.openblas.net/
 
 Please refer to the parent README.md file for more detailed information about the JavaCPP Presets.
 
@@ -16,7 +20,7 @@ Java API documentation is available here:
 
  * http://bytedeco.org/javacpp-presets/openblas/apidocs/
 
-&lowast; The JNI bindings can instead link with [Intel MKL](https://software.intel.com/intel-mkl), or any other arbitrary library found on the "java.library.path" or on the class path, by specifying it with the "org.bytedeco.openblas.load" system property. For example, to use the BLAS library from the [Accelerate framework](https://developer.apple.com/documentation/accelerate) on Mac OS X, we can pass options such as `-Djava.library.path=/usr/lib/ -Dorg.bytedeco.openblas.load=blas`, while for a default installation of MKL that would be `-Dorg.bytedeco.openblas.load=mkl_rt`.
+&lowast; The JNI bindings can instead link with [Intel MKL](https://software.intel.com/mkl), or any other arbitrary library found on the "java.library.path" or on the class path, by specifying it with the "org.bytedeco.openblas.load" system property. For example, to use the BLAS library from the [Accelerate framework](https://developer.apple.com/documentation/accelerate) on Mac OS X, we can pass options such as `-Djava.library.path=/usr/lib/ -Dorg.bytedeco.openblas.load=blas`, while for a default installation of MKL that would be `-Dorg.bytedeco.openblas.load=mkl_rt`.
 
 Intel also offers a stripped-down but free version of MKL named "MKLML" that is bundled with the [JavaCPP Presets for MKL-DNN](../mkl-dnn). After adding the JAR files for MKL-DNN to the class path, it can be accessed with an option like `-Dorg.bytedeco.openblas.load=mklml`. Moreover, it is now possible to do the same with the full version of MKL and the [JavaCPP Presets for MKL](../mkl) with the `-redist` artifacts in the class path and an option like `-Dorg.bytedeco.openblas.load=mkl_rt`.
 
@@ -25,7 +29,7 @@ Sample Usage
 ------------
 Here is a simple example of LAPACK ported to Java from this C source file:
 
- * https://github.com/bitfusionio/OpenBLAS/blob/master/lapack-netlib/lapacke/example/example_DGELS_rowmajor.c
+ * https://github.com/xianyi/OpenBLAS/blob/develop/lapack-netlib/LAPACKE/example/example_DGELS_rowmajor.c
 
 We can use [Maven 3](http://maven.apache.org/) to download and install automatically all the class files as well as the native binaries. To run this sample code, after creating the `pom.xml` and `ExampleDGELSrowmajor.java` source files below, simply execute on the command line:
 ```bash
@@ -38,7 +42,7 @@ We can use [Maven 3](http://maven.apache.org/) to download and install automatic
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.bytedeco.openblas</groupId>
     <artifactId>openblas</artifactId>
-    <version>1.5.2</version>
+    <version>1.5.6-SNAPSHOT</version>
     <properties>
         <exec.mainClass>ExampleDGELSrowmajor</exec.mainClass>
     </properties>
@@ -46,7 +50,7 @@ We can use [Maven 3](http://maven.apache.org/) to download and install automatic
         <dependency>
             <groupId>org.bytedeco</groupId>
             <artifactId>openblas-platform</artifactId>
-            <version>0.3.7-1.5.2</version>
+            <version>0.3.14-1.5.6-SNAPSHOT</version>
         </dependency>
     </dependencies>
     <build>

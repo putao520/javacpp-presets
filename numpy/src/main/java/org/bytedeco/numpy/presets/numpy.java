@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Samuel Audet
+ * Copyright (C) 2019-2021 Samuel Audet
  *
  * Licensed either under the Apache License, Version 2.0, or (at your option)
  * under the terms of the GNU General Public License as published by
@@ -103,10 +103,10 @@ public class numpy implements InfoMapper {
                                                            "         PyUFunc_API\\[42\\]\\)").skip())
 
                .put(new Info("NPY_VISIBILITY_HIDDEN", "NPY_GCC_UNROLL_LOOPS", "NPY_GCC_OPT_3",
-                             "NPY_GCC_TARGET_AVX", "NPY_GCC_TARGET_AVX2", "NPY_GCC_TARGET_AVX512F", "NPY_RETURNS_BORROWED_REF",
-                             "NPY_INLINE", "NPY_TLS", "constchar",
-                             "NPY_SIGINT_ON", "NPY_SIGINT_OFF", "NPY_INPLACE",
-                             "npy_fseek", "npy_ftell", "npy_lseek", "npy_off_t",
+                             "NPY_GCC_TARGET_AVX", "NPY_GCC_TARGET_FMA", "NPY_GCC_TARGET_AVX2", "NPY_GCC_TARGET_AVX512F", "NPY_GCC_TARGET_AVX512_SKX",
+                             "NPY_INLINE", "NPY_TLS", "NPY_RETURNS_BORROWED_REF", "constchar",
+                             "NPY_SIGINT_ON", "NPY_SIGINT_OFF", "NPY_INPLACE", "NPY_FINLINE",
+                             "npy_fseek", "npy_ftell", "npy_lseek", "npy_off_t", "PyArrayDescr_Type",
                              "PyIntpArrType_Type", "PyUIntpArrType_Type", "MyPyLong_FromInt64", "MyPyLong_AsInt64",
                              "PyInt64ScalarObject", "PyInt64ArrType_Type", "PyUInt64ScalarObject", "PyUInt64ArrType_Type",
                              "PyInt32ScalarObject", "PyInt32ArrType_Type", "PyUInt32ScalarObject", "PyUInt32ArrType_Type",
@@ -128,7 +128,7 @@ public class numpy implements InfoMapper {
                              "NPY_FLOAT256", "NPY_COMPLEX512", "NPY_COMPLEX512_FMT",
                              "NPY_SIGJMP_BUF", "_npy_signbit_f", "_npy_signbit_d", "_npy_signbit_ld",
                              "npy_degrees", "npy_degreesf", "npy_degreesl", "npy_radians", "npy_radiansf", "npy_radiansl",
-                             "PyStringScalarObject", "PyUnicodeScalarObject", "__COMP_NPY_UNUSED",
+                             "PyStringScalarObject", /*"PyUnicodeScalarObject",*/ "__COMP_NPY_UNUSED",
                              "PyArrayScalar_False", "PyArrayScalar_True", "PyArrayScalar_RETURN_FALSE", "PyArrayScalar_RETURN_TRUE", "NPY_NO_EXPORT",
                              "PyArray_malloc", "PyArray_free", "PyArray_realloc",
                              "NPY_BEGIN_THREADS_DEF", "NPY_BEGIN_ALLOW_THREADS", "NPY_END_ALLOW_THREADS", "NPY_BEGIN_THREADS", "NPY_END_THREADS",
@@ -138,6 +138,7 @@ public class numpy implements InfoMapper {
 
                .put(new Info("defined(_MSC_VER) && defined(_WIN64) && (_MSC_VER > 1400) ||"
                            + "    defined(__MINGW32__) || defined(__MINGW64__)",
+                             "defined(NPY_INTERNAL_BUILD) && NPY_INTERNAL_BUILD",
                              "NPY_SIZEOF_PY_INTPTR_T == NPY_SIZEOF_INT",
                              "NPY_SIZEOF_PY_INTPTR_T == NPY_SIZEOF_LONG",
                              "NPY_BITSOF_LONG == 8",   "NPY_BITSOF_LONGLONG == 8",
@@ -174,6 +175,8 @@ public class numpy implements InfoMapper {
                .put(new Info("_loop1d_info").pointerTypes("PyUFunc_Loop1d"))
                .put(new Info("_tagPyUFuncObject").base("PyObject").pointerTypes("PyUFuncObject"))
                .put(new Info("PyUFuncGenericFunction").valueTypes("PyUFuncGenericFunction").pointerTypes("@ByPtrPtr PyUFuncGenericFunction"))
+               .put(new Info("PyArrayDescr_TypeFull").javaText(
+                       "public static native @ByRef PyTypeObject PyArrayDescr_Type(); public static native void PyArrayDescr_Type(PyTypeObject setter);"))
 
                .put(new Info("PyArrayMapIter_Type", "PyArrayNeighborhoodIter_Type").skip())
         ;

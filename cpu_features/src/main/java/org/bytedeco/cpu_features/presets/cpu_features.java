@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Samuel Audet
+ * Copyright (C) 2019-2020 Samuel Audet
  *
  * Licensed either under the Apache License, Version 2.0, or (at your option)
  * under the terms of the GNU General Public License as published by
@@ -26,6 +26,7 @@ import org.bytedeco.javacpp.Loader;
 import org.bytedeco.javacpp.annotation.NoException;
 import org.bytedeco.javacpp.annotation.Platform;
 import org.bytedeco.javacpp.annotation.Properties;
+import org.bytedeco.javacpp.presets.javacpp;
 import org.bytedeco.javacpp.tools.Info;
 import org.bytedeco.javacpp.tools.InfoMap;
 import org.bytedeco.javacpp.tools.InfoMapper;
@@ -35,6 +36,7 @@ import org.bytedeco.javacpp.tools.InfoMapper;
  * @author Samuel Audet
  */
 @Properties(
+    inherit = javacpp.class,
     value = {
         @Platform(
             include = {
@@ -67,6 +69,7 @@ public class cpu_features implements InfoMapper {
                              "CPU_FEATURES_COMPILED_X86_SSE3", "CPU_FEATURES_COMPILED_X86_SSSE3",
                              "CPU_FEATURES_COMPILED_X86_SSE4_1", "CPU_FEATURES_COMPILED_X86_SSE4_2",
                              "CPU_FEATURES_COMPILED_X86_AVX", "CPU_FEATURES_COMPILED_x86_AVX2",
-                             "CPU_FEATURES_COMPILED_ANY_ARM_NEON", "CPU_FEATURES_COMPILED_MIPS_MSA").cppTypes().annotations());
+                             "CPU_FEATURES_COMPILED_ANY_ARM_NEON", "CPU_FEATURES_COMPILED_MIPS_MSA").cppTypes().annotations())
+               .put(new Info("cpu_features::CpuFeatures_IsHwCapsSet").skip());
     }
 }

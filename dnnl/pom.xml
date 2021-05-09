@@ -6,15 +6,26 @@
   <parent>
     <groupId>org.bytedeco</groupId>
     <artifactId>javacpp-presets</artifactId>
-    <version>1.5.3-SNAPSHOT</version>
+    <version>1.5.6-SNAPSHOT</version>
   </parent>
 
   <groupId>org.bytedeco</groupId>
   <artifactId>dnnl</artifactId>
-  <version>1.1.1-${project.parent.version}</version>
+  <version>2.2.1-${project.parent.version}</version>
   <name>JavaCPP Presets for DNNL</name>
 
+  <properties>
+    <javacpp.nativeRequires>
+      requires org.bytedeco.opencl.${javacpp.platform.module};
+    </javacpp.nativeRequires>
+  </properties>
+
   <dependencies>
+    <dependency>
+      <groupId>org.bytedeco</groupId>
+      <artifactId>opencl</artifactId>
+      <version>3.0-${project.parent.version}</version>
+    </dependency>
     <dependency>
       <groupId>org.bytedeco</groupId>
       <artifactId>javacpp</artifactId>
@@ -32,23 +43,49 @@
       <plugin>
         <groupId>org.bytedeco</groupId>
         <artifactId>javacpp</artifactId>
-        <executions>
-          <execution>
-            <id>javacpp-postbuild</id>
-            <phase>process-classes</phase>
-            <goals>
-              <goal>build</goal>
-            </goals>
-            <configuration>
-              <skip>${javacpp.compiler.skip}</skip>
-              <buildCommand>
-                <program>bash</program>
-                <argument>${project.basedir}/postbuild.sh</argument>
-              </buildCommand>
-              <workingDirectory>${project.basedir}</workingDirectory>
-            </configuration>
-          </execution>
-        </executions>
+        <dependencies>
+          <dependency>
+            <groupId>org.bytedeco</groupId>
+            <artifactId>opencl-platform</artifactId>
+            <version>3.0-${project.parent.version}</version>
+          </dependency>
+        </dependencies>
+        <configuration>
+          <classPaths>
+            <classPath>${basedir}/../opencl/target/classes/</classPath>
+            <classPath>${project.build.outputDirectory}</classPath>
+          </classPaths>
+          <includePaths>
+            <includePath>${basedir}/../opencl/target/classes/org/bytedeco/opencl/include/</includePath>
+            <includePath>${basedir}/../opencl/src/main/resources/org/bytedeco/opencl/include/</includePath>
+            <includePath>${basedir}/../opencl/cppbuild/${javacpp.platform}/include/</includePath>
+            <includePath>${basedir}/cppbuild/${javacpp.platform}${javacpp.platform.extension}/include/</includePath>
+            <includePath>${basedir}/target/classes/org/bytedeco/${javacpp.packageName}/include/</includePath>
+          </includePaths>
+          <linkPaths>
+            <linkPath>${basedir}/../opencl/cppbuild/${javacpp.platform}/lib/</linkPath>
+            <linkPath>${basedir}/cppbuild/${javacpp.platform}${javacpp.platform.extension}/lib/</linkPath>
+          </linkPaths>
+          <preloadPaths>
+            <preloadPath>${basedir}/../opencl/cppbuild/${javacpp.platform}/bin/</preloadPath>
+            <preloadPath>${basedir}/cppbuild/${javacpp.platform}${javacpp.platform.extension}/bin/</preloadPath>
+          </preloadPaths>
+          <buildResources>
+            <buildResource>/${javacpp.platform.library.path}/</buildResource>
+            <buildResource>/org/bytedeco/opencl/${javacpp.platform}/</buildResource>
+          </buildResources>
+          <includeResources>
+            <includeResource>/${javacpp.platform.library.path}/include/</includeResource>
+            <includeResource>/org/bytedeco/opencl/include/</includeResource>
+            <includeResource>/org/bytedeco/opencl/${javacpp.platform}/include/</includeResource>
+          </includeResources>
+          <linkResources>
+            <linkResource>/${javacpp.platform.library.path}/</linkResource>
+            <linkResource>/${javacpp.platform.library.path}/lib/</linkResource>
+            <linkResource>/org/bytedeco/opencl/${javacpp.platform}/</linkResource>
+            <linkResource>/org/bytedeco/opencl/${javacpp.platform}/lib/</linkResource>
+          </linkResources>
+        </configuration>
       </plugin>
       <plugin>
         <artifactId>maven-jar-plugin</artifactId>
@@ -85,69 +122,5 @@
       </plugin>
     </plugins>
   </build>
-
-  <profiles>
-    <profile>
-      <id>macosx-gcc8</id>
-      <activation>
-        <file>
-          <exists>/usr/local/bin/g++-8</exists>
-        </file>
-      </activation>
-      <properties>
-        <javacpp.platform.compiler>/usr/local/bin/g++-8</javacpp.platform.compiler>
-      </properties>
-    </profile>
-    <profile>
-      <id>macosx-gcc7</id>
-      <activation>
-        <file>
-          <exists>/usr/local/bin/g++-7</exists>
-        </file>
-      </activation>
-      <properties>
-        <javacpp.platform.compiler>/usr/local/bin/g++-7</javacpp.platform.compiler>
-      </properties>
-    </profile>
-    <profile>
-      <id>macosx-gcc6</id>
-      <activation>
-        <file>
-          <exists>/usr/local/bin/g++-6</exists>
-        </file>
-      </activation>
-      <properties>
-         <javacpp.platform.compiler>/usr/local/bin/g++-6</javacpp.platform.compiler>
-      </properties>
-    </profile>
-    <profile>
-      <id>macosx-gcc5</id>
-      <activation>
-        <file>
-          <exists>/usr/local/bin/g++-5</exists>
-        </file>
-      </activation>
-      <properties>
-        <javacpp.platform.compiler>/usr/local/bin/g++-5</javacpp.platform.compiler>
-      </properties>
-    </profile>
-    <profile>
-      <id>mingw</id>
-      <activation>
-        <os><family>windows</family></os>
-      </activation>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.bytedeco</groupId>
-            <artifactId>javacpp</artifactId>
-            <configuration>
-              <properties>${javacpp.platform}-mingw</properties>
-            </configuration>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-  </profiles>
 
 </project>

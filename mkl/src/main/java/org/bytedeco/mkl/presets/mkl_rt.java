@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Samuel Audet
+ * Copyright (C) 2017-2021 Samuel Audet
  *
  * Licensed either under the Apache License, Version 2.0, or (at your option)
  * under the terms of the GNU General Public License as published by
@@ -26,6 +26,7 @@ import org.bytedeco.javacpp.Loader;
 import org.bytedeco.javacpp.annotation.NoException;
 import org.bytedeco.javacpp.annotation.Platform;
 import org.bytedeco.javacpp.annotation.Properties;
+import org.bytedeco.javacpp.presets.javacpp;
 import org.bytedeco.javacpp.tools.Info;
 import org.bytedeco.javacpp.tools.InfoMap;
 import org.bytedeco.javacpp.tools.InfoMapper;
@@ -34,33 +35,34 @@ import org.bytedeco.javacpp.tools.InfoMapper;
  *
  * @author Samuel Audet
  */
-@Properties(global = "org.bytedeco.mkl.global.mkl_rt", names = {"linux-x86", "macosx-x86", "windows-x86"}, value = {
+@Properties(inherit = javacpp.class, global = "org.bytedeco.mkl.global.mkl_rt", names = {"linux-x86", "macosx-x86", "windows-x86"}, value = {
     @Platform(include = {"mkl.h", "mkl_version.h", "mkl_types.h", /*"mkl_blas.h",*/ "mkl_trans.h", "mkl_cblas.h", "mkl_spblas.h", /*"mkl_lapack.h",*/ "mkl_lapacke.h",
         "mkl_dss.h", "mkl_pardiso.h", "mkl_sparse_handle.h", "mkl_service.h", "mkl_rci.h", "mkl_vml.h", "mkl_vml_defines.h", "mkl_vml_types.h", "mkl_vml_functions.h",
         "mkl_vsl.h", "mkl_vsl_defines.h", "mkl_vsl_types.h", "mkl_vsl_functions.h", "mkl_df.h", "mkl_df_defines.h", "mkl_df_types.h", "mkl_df_functions.h",
-        "mkl_dfti.h", "mkl_trig_transforms.h", "mkl_poisson.h", "mkl_solvers_ee.h", /*"mkl_direct_types.h", "mkl_direct_blas.h", "mkl_direct_lapack.h", "mkl_direct_call.h",*/
-        "mkl_dnn_types.h", "mkl_dnn.h", /*"mkl_blacs.h", "mkl_pblas.h", "mkl_scalapack.h", "mkl_cdft_types.h", "mkl_cdft.h", "i_malloc.h" */},
-              compiler = {"fastfpu", "nodeprecated"}, includepath = "/opt/intel/mkl/include/", linkpath = {"/opt/intel/lib/", "/opt/intel/mkl/lib/"}, link = "mkl_rt",
-              preload = {"iomp5", "libiomp5md", "mkl_gnu_thread", "mkl_intel_lp64", "mkl_intel_thread", "mkl_core",
-                         "mkl_def", "mkl_mc", "mkl_mc3", "mkl_p4", "mkl_p4m", "mkl_p4m3", "mkl_avx", "mkl_avx2", "mkl_avx512", "mkl_avx512_mic",
-                         "mkl_vml_def", "mkl_vml_ia", "mkl_vml_mc", "mkl_vml_mc2", "mkl_vml_mc3", "mkl_vml_p4", "mkl_vml_p4m", "mkl_vml_p4m2", "mkl_vml_p4m3",
-                         "mkl_vml_avx", "mkl_vml_avx2", "mkl_vml_avx512", "mkl_vml_avx512_mic", "mkl_vml_cmpt"}),
-    @Platform(value = "linux-x86",    linkpath = {"/opt/intel/lib/ia32/", "/opt/intel/mkl/lib/ia32/"}),
-    @Platform(value = "linux-x86_64", linkpath = {"/opt/intel/lib/intel64/", "/opt/intel/mkl/lib/intel64/"}),
-    @Platform(value = "windows",     includepath = "C:/Program Files (x86)/IntelSWTools/compilers_and_libraries/windows/mkl/include/"),
-    @Platform(value = "windows-x86",    linkpath = "C:/Program Files (x86)/IntelSWTools/compilers_and_libraries/windows/mkl/lib/ia32/",
-                                     preloadpath = {"C:/Program Files (x86)/IntelSWTools/compilers_and_libraries/windows/redist/ia32/compiler/",
-                                                    "C:/Program Files (x86)/IntelSWTools/compilers_and_libraries/windows/redist/ia32/mkl/"}),
-    @Platform(value = "windows-x86_64", linkpath = "C:/Program Files (x86)/IntelSWTools/compilers_and_libraries/windows/mkl/lib/intel64/",
-                                     preloadpath = {"C:/Program Files (x86)/IntelSWTools/compilers_and_libraries/windows/redist/intel64/compiler/",
-                                                    "C:/Program Files (x86)/IntelSWTools/compilers_and_libraries/windows/redist/intel64/mkl/"}) })
+        "mkl_dfti.h", "mkl_trig_transforms.h", "mkl_poisson.h", "mkl_solvers_ee.h", /*"mkl_direct_types.h", "mkl_direct_blas.h", "mkl_direct_lapack.h", "mkl_direct_call.h",
+        "mkl_dnn_types.h", "mkl_dnn.h", "mkl_blacs.h", "mkl_pblas.h", "mkl_scalapack.h", "mkl_cdft_types.h", "mkl_cdft.h", "i_malloc.h" */},
+              compiler = {"fastfpu", "nodeprecated"}, includepath = "/opt/intel/oneapi/mkl/latest/include/",
+              linkpath = {"/opt/intel/oneapi/mkl/latest/lib/", "/opt/intel/oneapi/compiler/latest/mac/compiler/lib/"}, link = "mkl_rt@.1",
+              preload = {"mkl_core@.1", "iomp5", "libiomp5md", "mkl_gnu_thread@.1", "mkl_intel_lp64@.1", "mkl_intel_thread@.1",
+                         "mkl_def@.1", "mkl_mc@.1", "mkl_mc3@.1", "mkl_p4@.1", "mkl_p4m@.1", "mkl_p4m3@.1", "mkl_avx@.1", "mkl_avx2@.1", "mkl_avx512@.1", "mkl_avx512_mic@.1",
+                         "mkl_vml_def@.1", "mkl_vml_ia@.1", "mkl_vml_mc@.1", "mkl_vml_mc2@.1", "mkl_vml_mc3@.1", "mkl_vml_p4@.1", "mkl_vml_p4m@.1", "mkl_vml_p4m2@.1", "mkl_vml_p4m3@.1",
+                         "mkl_vml_avx@.1", "mkl_vml_avx2@.1", "mkl_vml_avx512@.1", "mkl_vml_avx512_mic@.1", "mkl_vml_cmpt@.1"}, resource = {"include", "lib"}),
+    @Platform(value = "linux-x86",    linkpath = {"/opt/intel/oneapi/mkl/latest/lib/ia32/", "/opt/intel/oneapi/compiler/latest/linux/compiler/lib/ia32_lin/"}),
+    @Platform(value = "linux-x86_64", linkpath = {"/opt/intel/oneapi/mkl/latest/lib/intel64/", "/opt/intel/oneapi/compiler/latest/linux/compiler/lib/intel64_lin/"}),
+    @Platform(value = "windows",     includepath = "C:/Program Files (x86)/Intel/oneAPI/mkl/latest/include/"),
+    @Platform(value = "windows-x86",    linkpath = "C:/Program Files (x86)/Intel/oneAPI/mkl/latest/lib/ia32/",
+                                     preloadpath = {"C:/Program Files (x86)/Intel/oneAPI/mkl/latest/redist/ia32/",
+                                                    "C:/Program Files (x86)/Intel/oneAPI/compiler/latest/windows/redist/ia32_win/compiler/"}),
+    @Platform(value = "windows-x86_64", linkpath = "C:/Program Files (x86)/Intel/oneAPI/mkl/latest/lib/intel64/",
+                                     preloadpath = {"C:/Program Files (x86)/Intel/oneAPI/mkl/latest/redist/intel64/",
+                                                    "C:/Program Files (x86)/Intel/oneAPI/compiler/latest/windows/redist/intel64_win/compiler/"}) })
 @NoException
 public class mkl_rt implements InfoMapper {
     static { Loader.checkVersion("org.bytedeco", "mkl"); }
 
     public void map(InfoMap infoMap) {
         infoMap.put(new Info("MKL_INT", "MKL_INT64", "MKL_UINT", "MKL_UINT64", "MKL_LONG", "MKL_DECLSPEC", "MKL_CALL_CONV", "INTEL_API_DEF",
-                             "MKL_UINT8", "MKL_INT8", "MKL_INT16", "MKL_INT32",
+                             "MKL_UINT8", "MKL_INT8", "MKL_INT16", "MKL_BF16", "MKL_INT32", "NOTHROW",
 
                              "mkl_simatcopy", "mkl_dimatcopy", "mkl_cimatcopy", "mkl_zimatcopy", "mkl_somatcopy", "mkl_domatcopy", "mkl_comatcopy", "mkl_zomatcopy",
                              "mkl_somatcopy2", "mkl_domatcopy2", "mkl_comatcopy2", "mkl_zomatcopy2", "mkl_somatadd", "mkl_domatadd", "mkl_comatadd", "mkl_zomatadd",
@@ -136,6 +138,9 @@ public class mkl_rt implements InfoMapper {
                              "MKL_MIC_Set_Offload_Report", "MKL_MIC_Set_Device_Num_Threads", "MKL_MIC_Set_Resource_Limit", "MKL_MIC_Get_Resource_Limit",
                              "VMDAcospi", "VMDAsinpi", "VMDAtanpi", "VMDCosd", "VMDCospi", "VMDSind", "VMDSinpi", "VMDTand", "VMDTanpi",
                              "MKL_MIC_Get_Flags", "MKL_MIC_Set_Flags", "MKL_MIC_Get_Status", "MKL_MIC_Clear_Status",
-                             "VSLCONVCopyTask", "VSLCONVDeleteTask", "VSLCORRCopyTask", "VSLCORRDeleteTask").skip());
+                             "VSLCONVCopyTask", "VSLCONVDeleteTask", "VSLCORRCopyTask", "VSLCORRDeleteTask",
+                             "vclog2i", "vmclog2i", "vmzlog2i", "vzlog2i",
+                             "vcLog2I", "vmcLog2I", "vmzLog2I", "vzLog2I",
+                             "VCLOG2I", "VMCLOG2I", "VMZLOG2I", "VZLOG2I").skip());
     }
 }

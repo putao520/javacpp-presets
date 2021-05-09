@@ -6,13 +6,13 @@
   <parent>
     <groupId>org.bytedeco</groupId>
     <artifactId>javacpp-presets</artifactId>
-    <version>1.5.3-SNAPSHOT</version>
+    <version>1.5.6-SNAPSHOT</version>
     <relativePath>../../</relativePath>
   </parent>
 
   <groupId>org.bytedeco</groupId>
   <artifactId>arpack-ng-platform</artifactId>
-  <version>3.7.0-${project.parent.version}</version>
+  <version>3.8.0-${project.parent.version}</version>
   <name>JavaCPP Presets Platform for ARPACK-NG</name>
 
   <properties>
@@ -24,7 +24,7 @@
     <dependency>
       <groupId>org.bytedeco</groupId>
       <artifactId>openblas-platform</artifactId>
-      <version>0.3.7-${project.parent.version}</version>
+      <version>0.3.14-${project.parent.version}</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
@@ -136,14 +136,14 @@
                   <file>${project.build.directory}/${project.artifactId}.jar</file>
                   <moduleInfoSource>
                     module org.bytedeco.${javacpp.packageName}.platform {
-                      requires org.bytedeco.${javacpp.packageName}.linux.x86;
-                      requires org.bytedeco.${javacpp.packageName}.linux.x86_64;
-                      requires org.bytedeco.${javacpp.packageName}.linux.armhf;
-                      requires org.bytedeco.${javacpp.packageName}.linux.arm64;
-                      requires org.bytedeco.${javacpp.packageName}.linux.ppc64le;
-                      requires org.bytedeco.${javacpp.packageName}.macosx.x86_64;
-                      requires org.bytedeco.${javacpp.packageName}.windows.x86;
-                      requires org.bytedeco.${javacpp.packageName}.windows.x86_64;
+                      requires static org.bytedeco.${javacpp.packageName}.linux.x86;
+                      requires static org.bytedeco.${javacpp.packageName}.linux.x86_64;
+                      requires static org.bytedeco.${javacpp.packageName}.linux.armhf;
+                      requires static org.bytedeco.${javacpp.packageName}.linux.arm64;
+                      requires static org.bytedeco.${javacpp.packageName}.linux.ppc64le;
+                      requires static org.bytedeco.${javacpp.packageName}.macosx.x86_64;
+                      requires static org.bytedeco.${javacpp.packageName}.windows.x86;
+                      requires static org.bytedeco.${javacpp.packageName}.windows.x86_64;
                     }
                   </moduleInfoSource>
                 </module>

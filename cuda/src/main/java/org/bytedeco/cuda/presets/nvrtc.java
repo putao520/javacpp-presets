@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2019 Samuel Audet
+ * Copyright (C) 2018-2021 Samuel Audet
  *
  * Licensed either under the Apache License, Version 2.0, or (at your option)
  * under the terms of the GNU General Public License as published by
@@ -34,12 +34,13 @@ import org.bytedeco.javacpp.tools.InfoMapper;
  * @author Samuel Audet
  */
 @Properties(inherit = cudart.class, value = {
-    @Platform(include = "<nvrtc.h>", link = "nvrtc@.10.1", preload = "nvrtc-builtins@.10.1"),
-    @Platform(value = "windows-x86_64", preload = {"nvrtc64_101_0", "nvrtc-builtins64_101"})},
+    @Platform(include = "<nvrtc.h>", link = "nvrtc@.11.3", preload = "nvrtc-builtins@.11.3"),
+    @Platform(value = "windows-x86_64", preload = {"nvrtc64_113_0", "nvrtc-builtins64_113"})},
         target = "org.bytedeco.cuda.nvrtc", global = "org.bytedeco.cuda.global.nvrtc")
 @NoException
 public class nvrtc implements InfoMapper {
     public void map(InfoMap infoMap) {
-        infoMap.put(new Info("nvrtcProgram").valueTypes("_nvrtcProgram").pointerTypes("@ByPtrPtr _nvrtcProgram", "@Cast(\"_nvrtcProgram**\") PointerPointer"));
+        infoMap.put(new Info("NVRTC_GET_TYPE_NAME || __DOXYGEN_ONLY__").define(false))
+               .put(new Info("nvrtcProgram").valueTypes("_nvrtcProgram").pointerTypes("@ByPtrPtr _nvrtcProgram", "@Cast(\"_nvrtcProgram**\") PointerPointer"));
     }
 }

@@ -1,11 +1,15 @@
 JavaCPP Presets for NumPy
 =========================
 
+[![Gitter](https://badges.gitter.im/bytedeco/javacpp.svg)](https://gitter.im/bytedeco/javacpp) [![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.bytedeco/numpy/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.bytedeco/numpy) [![Sonatype Nexus (Snapshots)](https://img.shields.io/nexus/s/https/oss.sonatype.org/org.bytedeco/numpy.svg)](http://bytedeco.org/builds/)  
+<sup>Build status for all platforms:</sup> [![numpy](https://github.com/bytedeco/javacpp-presets/workflows/numpy/badge.svg)](https://github.com/bytedeco/javacpp-presets/actions?query=workflow%3Anumpy)  <sup>Commercial support:</sup> [![xscode](https://img.shields.io/badge/Available%20on-xs%3Acode-blue?style=?style=plastic&logo=appveyor&logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAMAAACdt4HsAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAAZQTFRF////////VXz1bAAAAAJ0Uk5T/wDltzBKAAAAlUlEQVR42uzXSwqAMAwE0Mn9L+3Ggtgkk35QwcnSJo9S+yGwM9DCooCbgn4YrJ4CIPUcQF7/XSBbx2TEz4sAZ2q1RAECBAiYBlCtvwN+KiYAlG7UDGj59MViT9hOwEqAhYCtAsUZvL6I6W8c2wcbd+LIWSCHSTeSAAECngN4xxIDSK9f4B9t377Wd7H5Nt7/Xz8eAgwAvesLRjYYPuUAAAAASUVORK5CYII=)](https://xscode.com/bytedeco/javacpp-presets)
+
+
 Introduction
 ------------
 This directory contains the JavaCPP Presets module for:
 
- * NumPy 1.17.3  http://www.numpy.org/
+ * NumPy 1.20.2  http://www.numpy.org/
 
 Please refer to the parent README.md file for more detailed information about the JavaCPP Presets.
 
@@ -16,14 +20,14 @@ Java API documentation is available here:
 
  * http://bytedeco.org/javacpp-presets/numpy/apidocs/
 
-&lowast; Call `Py_SetPath(cachePackages())` before calling `Py_Initialize()`.
+&lowast; Call `Py_AddPath(cachePackages())` before calling `Py_Initialize()`.
 
 
 Sample Usage
 ------------
 Here is a simple example of NumPy based on the information available here:
 
- * https://docs.scipy.org/doc/numpy/reference/c-api.html
+ * https://numpy.org/doc/stable/reference/c-api/
 
 We can use [Maven 3](http://maven.apache.org/) to download and install automatically all the class files as well as the native binaries. To run this sample code, after creating the `pom.xml` and `MatMul.java` source files below, simply execute on the command line:
 ```bash
@@ -36,7 +40,7 @@ We can use [Maven 3](http://maven.apache.org/) to download and install automatic
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.bytedeco.numpy</groupId>
     <artifactId>matmul</artifactId>
-    <version>1.5.2</version>
+    <version>1.5.6-SNAPSHOT</version>
     <properties>
         <exec.mainClass>MatMul</exec.mainClass>
     </properties>
@@ -44,14 +48,14 @@ We can use [Maven 3](http://maven.apache.org/) to download and install automatic
         <dependency>
             <groupId>org.bytedeco</groupId>
             <artifactId>numpy-platform</artifactId>
-            <version>1.17.3-1.5.2</version>
+            <version>1.20.2-1.5.6-SNAPSHOT</version>
         </dependency>
 
         <!-- Additional dependencies to use bundled full version of MKL -->
         <dependency>
             <groupId>org.bytedeco</groupId>
             <artifactId>mkl-platform-redist</artifactId>
-            <version>2019.5-1.5.2</version>
+            <version>2021.2-1.5.6-SNAPSHOT</version>
         </dependency>
 
     </dependencies>
@@ -75,7 +79,7 @@ public class MatMul {
         /* try to use MKL when available */
         System.setProperty("org.bytedeco.openblas.load", "mkl");
 
-        Py_SetPath(org.bytedeco.numpy.global.numpy.cachePackages());
+        Py_AddPath(org.bytedeco.numpy.global.numpy.cachePackages());
         Py_Initialize();
         if (_import_array() < 0) {
             System.err.println("numpy.core.multiarray failed to import");

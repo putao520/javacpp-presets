@@ -11,14 +11,15 @@ mkdir -p $PLATFORM
 cd $PLATFORM
 
 INCLUDE_PATH="/usr/include/"
-if [[ ! -d "$INCLUDE_PATH" ]]; then
+if [[ ! -d "$INCLUDE_PATH" ]] && [[ ! -d "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/" ]] &&
+        [[ ! -d "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/" ]]; then
     echo "Please install system development files under the default installation directory"
     exit 1
 fi
 
 case $PLATFORM in
     linux-armhf)
-        CROSS_INCLUDE_PATH=$(echo | arm-linux-gnueabihf-g++ -E -v - 2>&1 | grep -o ' .*/usr/include' | tail -1 | xargs)
+        CROSS_INCLUDE_PATH=$(echo | arm-linux-gnueabihf-g++ -E -v - 2>&1 | grep -o '^ .*/usr/include' | tail -1 | xargs)
         if [[ -d "$CROSS_INCLUDE_PATH" ]]; then
             INCLUDE_PATH="$CROSS_INCLUDE_PATH"
         fi

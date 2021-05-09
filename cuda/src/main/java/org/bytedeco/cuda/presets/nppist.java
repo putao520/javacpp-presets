@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015-2019 Samuel Audet
+ * Copyright (C) 2015-2020 Samuel Audet
  *
  * Licensed either under the Apache License, Version 2.0, or (at your option)
  * under the terms of the GNU General Public License as published by
@@ -34,13 +34,14 @@ import org.bytedeco.javacpp.tools.InfoMapper;
  * @author Samuel Audet
  */
 @Properties(inherit = nppc.class, value = {
-    @Platform(include = {"<nppi_statistics_functions.h>", "<nppi_linear_transforms.h>"}, link = "nppist@.10"),
-    @Platform(value = "windows-x86_64", preload = "nppist64_10")},
+    @Platform(include = {"<nppi_statistics_functions.h>", "<nppi_linear_transforms.h>"}, link = "nppist@.11"),
+    @Platform(value = "windows-x86_64", preload = "nppist64_11")},
         global = "org.bytedeco.cuda.global.nppist")
 @NoException
 public class nppist implements InfoMapper {
     public void map(InfoMap infoMap) {
         infoMap.put(new Info("nppiEvenLevelsHost_32s_Ctx", "nppiHistogramEvenGetBufferSize_16s_AC4R_Ctx",
+                             "nppiMSEBatchGetBufferHostSize_8u_C1R", "nppiMSEBatchGetBufferHostSize_8u_C3R",
                              "nppiHistogramEvenGetBufferSize_16s_C1R_Ctx", "nppiHistogramEvenGetBufferSize_16s_C3R_Ctx",
                              "nppiHistogramEvenGetBufferSize_16s_C4R_Ctx", "nppiHistogramEvenGetBufferSize_16u_AC4R_Ctx",
                              "nppiHistogramEvenGetBufferSize_16u_C1R_Ctx", "nppiHistogramEvenGetBufferSize_16u_C3R_Ctx",

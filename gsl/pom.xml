@@ -6,7 +6,7 @@
   <parent>
     <groupId>org.bytedeco</groupId>
     <artifactId>javacpp-presets</artifactId>
-    <version>1.5.3-SNAPSHOT</version>
+    <version>1.5.6-SNAPSHOT</version>
   </parent>
 
   <groupId>org.bytedeco</groupId>
@@ -14,11 +14,17 @@
   <version>2.6-${project.parent.version}</version>
   <name>JavaCPP Presets for GSL</name>
 
+  <properties>
+    <javacpp.nativeRequires>
+      requires org.bytedeco.openblas.${javacpp.platform.module};
+    </javacpp.nativeRequires>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>org.bytedeco</groupId>
       <artifactId>openblas</artifactId>
-      <version>0.3.7-${project.parent.version}</version>
+      <version>0.3.14-${project.parent.version}</version>
     </dependency>
     <dependency>
       <groupId>org.bytedeco</groupId>
@@ -44,12 +50,12 @@
           <dependency>
             <groupId>org.bytedeco</groupId>
             <artifactId>openblas</artifactId>
-            <version>0.3.7-${project.parent.version}</version>
+            <version>0.3.14-${project.parent.version}</version>
           </dependency>
           <dependency>
             <groupId>org.bytedeco</groupId>
             <artifactId>openblas</artifactId>
-            <version>0.3.7-${project.parent.version}</version>
+            <version>0.3.14-${project.parent.version}</version>
             <classifier>${javacpp.platform}</classifier>
           </dependency>
         </dependencies>

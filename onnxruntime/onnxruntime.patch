@@ -1,49 +1,113 @@
 diff --git a/cmake/CMakeLists.txt b/cmake/CMakeLists.txt
-index 5de48bfc..5a6698c3 100644
+index a07893771..192f81d04 100644
 --- a/cmake/CMakeLists.txt
 +++ b/cmake/CMakeLists.txt
-@@ -430,8 +430,8 @@ if (WIN32)
+@@ -1023,8 +1023,8 @@ if (WIN32)
  else()
    add_definitions(-DPLATFORM_POSIX)
    # Enable warning and enable space optimization in Linux
 -  string(APPEND CMAKE_CXX_FLAGS " -Wall -Wextra -ffunction-sections -fdata-sections")
 -  string(APPEND CMAKE_C_FLAGS " -Wall -Wextra -ffunction-sections -fdata-sections")
-+  string(APPEND CMAKE_CXX_FLAGS " -Wall -Wextra")
-+  string(APPEND CMAKE_C_FLAGS " -Wall -Wextra")
++  string(APPEND CMAKE_CXX_FLAGS " -Wall -Wextra -I/usr/local/include")
++  string(APPEND CMAKE_C_FLAGS " -Wall -Wextra -I/usr/local/include")
  
    if(onnxruntime_DEV_MODE)
      string(APPEND CMAKE_CXX_FLAGS " -Werror")
 diff --git a/cmake/onnxruntime.cmake b/cmake/onnxruntime.cmake
-index 66bbc6c4..1a3f2467 100644
+index 3b283767c..ec965bfe2 100644
 --- a/cmake/onnxruntime.cmake
 +++ b/cmake/onnxruntime.cmake
-@@ -37,9 +37,9 @@ endif()
+@@ -58,9 +58,9 @@ endif()
  
  if(UNIX)
    if (APPLE)
--    set(ONNXRUNTIME_SO_LINK_FLAG "-Xlinker -dead_strip")
-+    set(ONNXRUNTIME_SO_LINK_FLAG "")
+-    set(ONNXRUNTIME_SO_LINK_FLAG " -Xlinker -dead_strip")
++    set(ONNXRUNTIME_SO_LINK_FLAG "-L/usr/local/lib -lomp")
    else()
--    set(ONNXRUNTIME_SO_LINK_FLAG "-Xlinker --version-script=${SYMBOL_FILE} -Xlinker --no-undefined -Xlinker --gc-sections")
+-    set(ONNXRUNTIME_SO_LINK_FLAG " -Xlinker --version-script=${SYMBOL_FILE} -Xlinker --no-undefined -Xlinker --gc-sections -z noexecstack")
 +    set(ONNXRUNTIME_SO_LINK_FLAG "-Xlinker --no-undefined -Xlinker -z -Xlinker noexecstack")
    endif()
  else()
-   set(ONNXRUNTIME_SO_LINK_FLAG "-DEF:${SYMBOL_FILE}")
-diff --git a/include/onnxruntime/core/session/onnxruntime_c_api.h b/include/onnxruntime/core/session/onnxruntime_c_api.h
-index 3df205f1..cd674ffd 100644
---- a/include/onnxruntime/core/session/onnxruntime_c_api.h
-+++ b/include/onnxruntime/core/session/onnxruntime_c_api.h
-@@ -65,7 +65,7 @@ extern "C" {
- // Windows users should use unicode paths when possible to bypass the MAX_PATH limitation
- // Every pointer marked with _In_ or _Out_, cannot be NULL. Caller should ensure that.
- // for ReleaseXXX(...) functions, they can accept NULL pointer.
--#define NO_EXCEPTION noexcept
-+#define NO_EXCEPTION
- #else
- #define NO_EXCEPTION
- #endif
+   set(ONNXRUNTIME_SO_LINK_FLAG " -DEF:${SYMBOL_FILE}")
+diff --git a/onnxruntime/core/framework/provider_bridge_ort.cc b/onnxruntime/core/framework/provider_bridge_ort.cc
+index a12b5989d..a106e270a 100644
+--- a/onnxruntime/core/framework/provider_bridge_ort.cc
++++ b/onnxruntime/core/framework/provider_bridge_ort.cc
+@@ -578,12 +578,31 @@ struct ProviderHostImpl : ProviderHost {
+ 
+ } provider_host_;
+ 
++#ifdef __APPLE__
++#include <mach-o/dyld.h>
++#endif
++
+ struct ProviderSharedLibrary {
++
++  std::string libpath;
++
+   bool Ensure() {
+     if (handle_)
+       return true;
+ 
+     std::string full_path = Env::Default().GetRuntimePath() + std::string(LIBRARY_PREFIX "onnxruntime_providers_shared" LIBRARY_EXTENSION);
++#ifdef __APPLE__
++size_t len1 = strlen(LIBRARY_PREFIX "onnxruntime_providers_shared" LIBRARY_EXTENSION);
++for (uint32_t i = 0; i < _dyld_image_count(); i++) {
++    const char *libname = _dyld_get_image_name(i);
++    size_t len2 = strlen(libname);
++    if (len2 > len1 && strcmp(LIBRARY_PREFIX "onnxruntime_providers_shared" LIBRARY_EXTENSION, libname + len2 - len1) == 0) {
++        libpath.assign(libname, len2 - len1);
++        full_path = libname;
++        break;
++    }
++}
++#endif
+     auto error = Env::Default().LoadDynamicLibrary(full_path, &handle_);
+     if (!error.IsOK()) {
+       LOGS_DEFAULT(ERROR) << error.ErrorMessage();
+@@ -629,6 +648,18 @@ struct ProviderLibrary {
+       return nullptr;
+ 
+     std::string full_path = Env::Default().GetRuntimePath() + std::string(filename_);
++#ifdef __APPLE__
++full_path = s_library_shared.libpath + std::string(filename_);
++size_t len1 = strlen(filename_);
++for (uint32_t i = 0; i < _dyld_image_count(); i++) {
++    const char *libname = _dyld_get_image_name(i);
++    size_t len2 = strlen(libname);
++    if (len2 > len1 && strcmp(filename_, libname + len2 - len1) == 0) {
++        full_path = libname;
++        break;
++    }
++}
++#endif
+     auto error = Env::Default().LoadDynamicLibrary(full_path, &handle_);
+     if (!error.IsOK()) {
+       LOGS_DEFAULT(ERROR) << error.ErrorMessage();
+diff --git a/onnxruntime/core/mlas/lib/x86/SgemmKernelAvx.S b/onnxruntime/core/mlas/lib/x86/SgemmKernelAvx.S
+index f874710c1..d21eb958e 100644
+--- a/onnxruntime/core/mlas/lib/x86/SgemmKernelAvx.S
++++ b/onnxruntime/core/mlas/lib/x86/SgemmKernelAvx.S
+@@ -344,7 +344,7 @@ C_UNDERSCORE(MlasGemmFloatKernelAvx):
+ .LOutputMasked8x2Block:
+         call    __x86.get_pc_thunk.bx
+         add     ebx,OFFSET _GLOBAL_OFFSET_TABLE_
+-        mov     ebx,DWORD PTR C_UNDERSCORE(MlasMaskMoveAvx)@GOT[ebx]
++        mov     ebx,DWORD PTR [C_UNDERSCORE(MlasMaskMoveAvx)@GOT+ebx]
+         mov     .LSgemmKernelFrame_CountN[esp],ebp
+         vbroadcastss xmm0,.LSgemmKernelFrame_CountN[esp]
+         vpcmpgtd xmm1,xmm0,XMMWORD PTR [ebx+16]
+@@ -426,7 +426,7 @@ C_UNDERSCORE(MlasGemmFloatKernelAvx):
+ .LOutputMasked8x1Block:
+         call    __x86.get_pc_thunk.bx
+         add     ebx,OFFSET _GLOBAL_OFFSET_TABLE_
+-        mov     ebx,DWORD PTR C_UNDERSCORE(MlasMaskMoveAvx)@GOT[ebx]
++        mov     ebx,DWORD PTR [C_UNDERSCORE(MlasMaskMoveAvx)@GOT+ebx]
+         mov     .LSgemmKernelFrame_CountN[esp],ebp
+         vbroadcastss xmm0,.LSgemmKernelFrame_CountN[esp]
+         vpcmpgtd xmm1,xmm0,XMMWORD PTR [ebx+16]
 diff --git a/onnxruntime/core/mlas/lib/x86_64/DgemmKernelSse2.S b/onnxruntime/core/mlas/lib/x86_64/DgemmKernelSse2.S
-index cf763054..5d7916ca 100644
+index cf7630545..5d7916cad 100644
 --- a/onnxruntime/core/mlas/lib/x86_64/DgemmKernelSse2.S
 +++ b/onnxruntime/core/mlas/lib/x86_64/DgemmKernelSse2.S
 @@ -146,7 +146,7 @@ Implicit Arguments:
@@ -56,7 +120,7 @@ index cf763054..5d7916ca 100644
          EmitIfCountGE \RowCount\(), 1, "mulpd xmm8,xmm2"
                                              # multiply by alpha
 diff --git a/onnxruntime/core/mlas/lib/x86_64/ErfKernelFma3.S b/onnxruntime/core/mlas/lib/x86_64/ErfKernelFma3.S
-index 92b7976d..e909490f 100644
+index 92b7976d7..e909490f8 100644
 --- a/onnxruntime/core/mlas/lib/x86_64/ErfKernelFma3.S
 +++ b/onnxruntime/core/mlas/lib/x86_64/ErfKernelFma3.S
 @@ -93,7 +93,7 @@ Return Value:
@@ -78,7 +142,7 @@ index 92b7976d..e909490f 100644
          vmaskmovps ymm0,ymm3,YMMWORD PTR [rdi]  # original input vx0
  
 diff --git a/onnxruntime/core/mlas/lib/x86_64/FgemmKernelAvx512FCommon.h b/onnxruntime/core/mlas/lib/x86_64/FgemmKernelAvx512FCommon.h
-index 22e4c361..db72a7a2 100644
+index 22e4c361d..db72a7a21 100644
 --- a/onnxruntime/core/mlas/lib/x86_64/FgemmKernelAvx512FCommon.h
 +++ b/onnxruntime/core/mlas/lib/x86_64/FgemmKernelAvx512FCommon.h
 @@ -459,9 +459,9 @@ Return Value:
@@ -108,7 +172,7 @@ index 22e4c361..db72a7a2 100644
          pop     rbx
          pop     rbp
 diff --git a/onnxruntime/core/mlas/lib/x86_64/FgemmKernelAvxCommon.h b/onnxruntime/core/mlas/lib/x86_64/FgemmKernelAvxCommon.h
-index a5abee97..aca8e00c 100644
+index a5abee977..aca8e00c6 100644
 --- a/onnxruntime/core/mlas/lib/x86_64/FgemmKernelAvxCommon.h
 +++ b/onnxruntime/core/mlas/lib/x86_64/FgemmKernelAvxCommon.h
 @@ -241,7 +241,7 @@ Implicit Arguments:
@@ -143,7 +207,7 @@ index a5abee97..aca8e00c 100644
  //
  // Process 4 rows of the matrices.
 diff --git a/onnxruntime/core/mlas/lib/x86_64/FgemmKernelCommon.h b/onnxruntime/core/mlas/lib/x86_64/FgemmKernelCommon.h
-index 941cb8d1..f78edae1 100644
+index 941cb8d1d..f78edae1d 100644
 --- a/onnxruntime/core/mlas/lib/x86_64/FgemmKernelCommon.h
 +++ b/onnxruntime/core/mlas/lib/x86_64/FgemmKernelCommon.h
 @@ -91,12 +91,12 @@ Implicit Arguments:
@@ -164,7 +228,7 @@ index 941cb8d1..f78edae1 100644
  .endif
          sub     rbp,4
 diff --git a/onnxruntime/core/mlas/lib/x86_64/FgemmKernelFma3Common.h b/onnxruntime/core/mlas/lib/x86_64/FgemmKernelFma3Common.h
-index f108b5c8..4e5cac63 100644
+index f108b5c8a..4e5cac638 100644
 --- a/onnxruntime/core/mlas/lib/x86_64/FgemmKernelFma3Common.h
 +++ b/onnxruntime/core/mlas/lib/x86_64/FgemmKernelFma3Common.h
 @@ -235,7 +235,7 @@ Implicit Arguments:
@@ -195,7 +259,7 @@ index f108b5c8..4e5cac63 100644
  
  //
 diff --git a/onnxruntime/core/mlas/lib/x86_64/FgemmKernelSse2Common.h b/onnxruntime/core/mlas/lib/x86_64/FgemmKernelSse2Common.h
-index 88cc1b4f..94994403 100644
+index 88cc1b4fd..949944032 100644
 --- a/onnxruntime/core/mlas/lib/x86_64/FgemmKernelSse2Common.h
 +++ b/onnxruntime/core/mlas/lib/x86_64/FgemmKernelSse2Common.h
 @@ -142,7 +142,7 @@ Return Value:
@@ -208,7 +272,7 @@ index 88cc1b4f..94994403 100644
  //
  // Process CountM rows of the matrices.
 diff --git a/onnxruntime/core/mlas/lib/x86_64/LogisticKernelFma3.S b/onnxruntime/core/mlas/lib/x86_64/LogisticKernelFma3.S
-index 243b3553..2fdb8442 100644
+index 243b35539..2fdb8442c 100644
 --- a/onnxruntime/core/mlas/lib/x86_64/LogisticKernelFma3.S
 +++ b/onnxruntime/core/mlas/lib/x86_64/LogisticKernelFma3.S
 @@ -72,7 +72,7 @@ Return Value:
@@ -234,10 +298,10 @@ index 243b3553..2fdb8442 100644
          vmaxps  ymm0,ymm4,ymm0                  # clamp lower bound
          vminps  ymm0,ymm5,ymm0                  # clamp upper bound
 diff --git a/onnxruntime/core/mlas/lib/x86_64/QgemmU8S8KernelAvx2.S b/onnxruntime/core/mlas/lib/x86_64/QgemmU8S8KernelAvx2.S
-index 3d637fb9..1dc6f861 100644
+index 6245aa97d..97a450cab 100644
 --- a/onnxruntime/core/mlas/lib/x86_64/QgemmU8S8KernelAvx2.S
 +++ b/onnxruntime/core/mlas/lib/x86_64/QgemmU8S8KernelAvx2.S
-@@ -106,17 +106,17 @@ C_UNDERSCORE(MlasGemmU8S8CopyPackAAvx2):
+@@ -101,17 +101,17 @@ C_UNDERSCORE(MlasGemmU8S8CopyPackAAvx2):
          and     eax,15                      # isolate unaligned count
          add     eax,3
          shr     eax,2                       # align unaligned count to quad count
@@ -260,7 +324,7 @@ index 3d637fb9..1dc6f861 100644
  
  //
  // Process 4 rows of matrix A in a loop.
-@@ -195,7 +195,7 @@ C_UNDERSCORE(MlasGemmU8S8CopyPackAAvx2):
+@@ -188,7 +188,7 @@ C_UNDERSCORE(MlasGemmU8S8CopyPackAAvx2):
  //
  
  .LCopyPackA.CopyRemainingCountKLessThan16M4:
@@ -268,8 +332,8 @@ index 3d637fb9..1dc6f861 100644
 +        lea     rbp,[.LGemmU8S8CopyPackAFrame_PaddedMatrixAData+rsp]
          test    bl,8                        # (CountK & 8) != 0?
          jz      .LCopyPackA.CopyRemainingCountKLessThan8M4
-         lea     r13,[rdx+r10*2]             # compute matrix A plus 2 rows
-@@ -258,10 +258,10 @@ C_UNDERSCORE(MlasGemmU8S8CopyPackAAvx2):
+         mov     rax,QWORD PTR [rdx]
+@@ -247,10 +247,10 @@ C_UNDERSCORE(MlasGemmU8S8CopyPackAAvx2):
  //
  
  .LCopyPackA.ProcessPaddedMatrixADataM4:
@@ -284,7 +348,7 @@ index 3d637fb9..1dc6f861 100644
          lea     rax,[rcx+r12*2]             # compute matrix D plus 2 rows
          vpmaskmovd XMMWORD PTR [rcx],xmm10,xmm4
          vpmaskmovd XMMWORD PTR [rcx+r12],xmm10,xmm5
-@@ -339,7 +339,7 @@ C_UNDERSCORE(MlasGemmU8S8CopyPackAAvx2):
+@@ -331,7 +331,7 @@ C_UNDERSCORE(MlasGemmU8S8CopyPackAAvx2):
  //
  
  .LCopyPackA.CopyRemainingCountKLessThan16M1:
@@ -293,7 +357,7 @@ index 3d637fb9..1dc6f861 100644
          test    bl,8                        # (CountK & 8) != 0?
          jz      .LCopyPackA.CopyRemainingCountKLessThan8M1
          mov     rax,QWORD PTR [rdx]
-@@ -374,7 +374,7 @@ C_UNDERSCORE(MlasGemmU8S8CopyPackAAvx2):
+@@ -366,7 +366,7 @@ C_UNDERSCORE(MlasGemmU8S8CopyPackAAvx2):
  //
  
  .LCopyPackA.ProcessPaddedMatrixADataM1:
@@ -302,14 +366,14 @@ index 3d637fb9..1dc6f861 100644
          vpmaskmovd XMMWORD PTR [rcx],xmm10,xmm4
          vpmaddubsw ymm4,ymm4,ymm9           # horizontal byte+byte=word per row
          vpaddw  ymm0,ymm0,ymm4              # accumulate per row along columns
-@@ -548,14 +548,14 @@ C_UNDERSCORE(MlasGemmU8S8CopyPackBAvx2):
+@@ -551,14 +551,14 @@ C_UNDERSCORE(MlasGemmU8S8CopyPackBAvx2):
  .LCopyPackB.ProcessColumnNUnaligned:
          vpxor   xmm0,xmm0,xmm0              # clear column accumulators
          vpxor   xmm1,xmm1,xmm1
--        vmovdqu YMMWORD PTR .LGemmU8S8CopyPackBFrame_PaddedMatrixBData[rsp],ymm0
--        vmovdqu YMMWORD PTR .LGemmU8S8CopyPackBFrame_PaddedMatrixBData[rsp+32],ymm0
-+        vmovdqu YMMWORD PTR [.LGemmU8S8CopyPackBFrame_PaddedMatrixBData+rsp],ymm0
-+        vmovdqu YMMWORD PTR [.LGemmU8S8CopyPackBFrame_PaddedMatrixBData+rsp+32],ymm0
+-        vmovdqu YMMWORD PTR .LGemmU8S8CopyPackBFrame_PaddedMatrixBData[rsp],ymm9
+-        vmovdqu YMMWORD PTR .LGemmU8S8CopyPackBFrame_PaddedMatrixBData[rsp+32],ymm9
++        vmovdqu YMMWORD PTR [.LGemmU8S8CopyPackBFrame_PaddedMatrixBData+rsp],ymm9
++        vmovdqu YMMWORD PTR [.LGemmU8S8CopyPackBFrame_PaddedMatrixBData+rsp+32],ymm9
          sub     r8,4
          jb      .LCopyPackB.ProcessRemainingRowsNUnaligned
  
@@ -319,8 +383,8 @@ index 3d637fb9..1dc6f861 100644
 +        lea     rbp,[.LGemmU8S8CopyPackBFrame_PaddedMatrixBData+rsp]
          test    cl,8                        # (CountN & 8) != 0?
          jz      .LCopyPackB.CopyRemainingCountNLessThan8K4
-         lea     r11,[rdx+r10*2]             # compute matrix B plus 2 rows
-@@ -614,10 +614,10 @@ C_UNDERSCORE(MlasGemmU8S8CopyPackBAvx2):
+         mov     rax,QWORD PTR [rdx]
+@@ -613,10 +613,10 @@ C_UNDERSCORE(MlasGemmU8S8CopyPackBAvx2):
          mov     BYTE PTR [rbp+48],al
  
  .LCopyPackB.ProcessPaddedMatrixBData:
@@ -335,20 +399,20 @@ index 3d637fb9..1dc6f861 100644
          vpunpcklbw xmm6,xmm2,xmm3           # interleave row data
          vpunpckhbw xmm3,xmm2,xmm3
          vpunpcklbw xmm2,xmm4,xmm5
-@@ -647,7 +647,7 @@ C_UNDERSCORE(MlasGemmU8S8CopyPackBAvx2):
+@@ -650,7 +650,7 @@ C_UNDERSCORE(MlasGemmU8S8CopyPackBAvx2):
  // Process the less than 4 remaining rows where the row has less than 16 columns.
  //
  
 -        lea     rbp,.LGemmU8S8CopyPackBFrame_PaddedMatrixBData[rsp]
 +        lea     rbp,[.LGemmU8S8CopyPackBFrame_PaddedMatrixBData+rsp]
-         vpxor   xmm6,xmm6,xmm6
-         vmovdqu YMMWORD PTR [rbp],ymm6
-         vmovdqu YMMWORD PTR [rbp+32],ymm6
+         vmovdqu YMMWORD PTR [rbp],ymm9
+         vmovdqu YMMWORD PTR [rbp+32],ymm9
+ 
 diff --git a/onnxruntime/core/mlas/lib/x86_64/QgemmU8U8KernelAvx2.S b/onnxruntime/core/mlas/lib/x86_64/QgemmU8U8KernelAvx2.S
-index d443561f..163ea076 100644
+index 1952578d7..fc9b473a9 100644
 --- a/onnxruntime/core/mlas/lib/x86_64/QgemmU8U8KernelAvx2.S
 +++ b/onnxruntime/core/mlas/lib/x86_64/QgemmU8U8KernelAvx2.S
-@@ -107,17 +107,17 @@ C_UNDERSCORE(MlasGemmU8U8CopyPackAAvx2):
+@@ -102,17 +102,17 @@ C_UNDERSCORE(MlasGemmU8U8CopyPackAAvx2):
          and     eax,15                      # isolate unaligned count
          inc     eax
          shr     eax,1                       # align unaligned count to pair count
@@ -371,7 +435,7 @@ index d443561f..163ea076 100644
  
  //
  // Process 4 rows of matrix A in a loop.
-@@ -177,7 +177,7 @@ C_UNDERSCORE(MlasGemmU8U8CopyPackAAvx2):
+@@ -168,7 +168,7 @@ C_UNDERSCORE(MlasGemmU8U8CopyPackAAvx2):
  // Copy the unaligned CountK columns to a zero padded stack buffer.
  //
  
@@ -380,7 +444,7 @@ index d443561f..163ea076 100644
          test    bl,8                        # (CountK & 8) != 0?
          jz      .LCopyPackA.CopyRemainingCountKLessThan8M4
          lea     r13,[rdx+r10*2]             # compute matrix A plus 2 rows
-@@ -240,10 +240,10 @@ C_UNDERSCORE(MlasGemmU8U8CopyPackAAvx2):
+@@ -231,10 +231,10 @@ C_UNDERSCORE(MlasGemmU8U8CopyPackAAvx2):
  //
  
  .LCopyPackA.ProcessPaddedMatrixADataM4:
@@ -395,7 +459,7 @@ index d443561f..163ea076 100644
          lea     rax,[rcx+r12*4]             # compute matrix D plus 2 rows
          vpmaskmovd YMMWORD PTR [rcx],ymm9,ymm4
          vpmaskmovd YMMWORD PTR [rcx+r12*2],ymm9,ymm5
-@@ -308,7 +308,7 @@ C_UNDERSCORE(MlasGemmU8U8CopyPackAAvx2):
+@@ -299,7 +299,7 @@ C_UNDERSCORE(MlasGemmU8U8CopyPackAAvx2):
  // Copy the unaligned CountK columns to a zero padded stack buffer.
  //
  
@@ -404,7 +468,7 @@ index d443561f..163ea076 100644
          test    bl,8                        # (CountK & 8) != 0?
          jz      .LCopyPackA.CopyRemainingCountKLessThan8M1
          mov     rax,QWORD PTR [rdx]
-@@ -343,7 +343,7 @@ C_UNDERSCORE(MlasGemmU8U8CopyPackAAvx2):
+@@ -334,7 +334,7 @@ C_UNDERSCORE(MlasGemmU8U8CopyPackAAvx2):
  //
  
  .LCopyPackA.ProcessPaddedMatrixADataM1:
@@ -413,7 +477,7 @@ index d443561f..163ea076 100644
          vpmaskmovd YMMWORD PTR [rcx],ymm9,ymm4
          vpaddw  ymm0,ymm0,ymm4              # accumulate per row along columns
  
-@@ -421,7 +421,7 @@ C_UNDERSCORE(MlasGemmU8U8CopyPackBAvx2):
+@@ -409,7 +409,7 @@ C_UNDERSCORE(MlasGemmU8U8CopyPackBAvx2):
  //
  
          vpxor   xmm0,xmm0,xmm0
@@ -422,7 +486,7 @@ index d443561f..163ea076 100644
  
  //
  // Process 16 columns of matrix B in a loop.
-@@ -503,7 +503,7 @@ C_UNDERSCORE(MlasGemmU8U8CopyPackBAvx2):
+@@ -493,7 +493,7 @@ C_UNDERSCORE(MlasGemmU8U8CopyPackBAvx2):
  
  .LCopyPackB.ProcessNextRowLoopNUnaligned:
          mov     rdx,rsi
@@ -431,7 +495,7 @@ index d443561f..163ea076 100644
          test    cl,8                        # (CountN & 8) != 0?
          jz      .LCopyPackB.CopyRemainingCountNLessThan8K2
          mov     rax,QWORD PTR [rdx]
-@@ -542,8 +542,8 @@ C_UNDERSCORE(MlasGemmU8U8CopyPackBAvx2):
+@@ -532,8 +532,8 @@ C_UNDERSCORE(MlasGemmU8U8CopyPackBAvx2):
          mov     BYTE PTR [rbp+16],al
  
  .LCopyPackB.ProcessPaddedMatrixBDataK2:
@@ -442,16 +506,16 @@ index d443561f..163ea076 100644
          vpunpcklbw xmm4,xmm2,xmm3           # interleave row data
          vpunpckhbw xmm3,xmm2,xmm3
          vmovdqu XMMWORD PTR [rdi],xmm4      # store interleaved rows
-@@ -561,7 +561,7 @@ C_UNDERSCORE(MlasGemmU8U8CopyPackBAvx2):
+@@ -553,7 +553,7 @@ C_UNDERSCORE(MlasGemmU8U8CopyPackBAvx2):
          add     r8,2
-         jz      .LCopyPackB.ReduceColumnSumVectorNUnaligned
+         jz      .LCopyPackB.StoreColumnSumBufferNUnaligned
          mov     rdx,rsi
 -        lea     rbp,.LGemmU8U8CopyPackBFrame_PaddedMatrixBData[rsp]
 +        lea     rbp,[.LGemmU8U8CopyPackBFrame_PaddedMatrixBData+rsp]
          test    cl,8                        # (CountN & 8) != 0?
          jz      .LCopyPackB.CopyRemainingCountNLessThan8K1
          mov     rax,QWORD PTR [rdx]
-@@ -592,7 +592,7 @@ C_UNDERSCORE(MlasGemmU8U8CopyPackBAvx2):
+@@ -584,7 +584,7 @@ C_UNDERSCORE(MlasGemmU8U8CopyPackBAvx2):
          mov     BYTE PTR [rbp],al
  
  .LCopyPackB.ProcessPaddedMatrixBDataK1:
@@ -461,7 +525,7 @@ index d443561f..163ea076 100644
          vextracti128 xmm3,ymm4,1
          vpmovzxbw ymm4,xmm4
 diff --git a/onnxruntime/core/mlas/lib/x86_64/QgemmU8X8KernelAvx2Common.h b/onnxruntime/core/mlas/lib/x86_64/QgemmU8X8KernelAvx2Common.h
-index 172bd9fa..98cfd72b 100644
+index 8a2bf10db..eba56a8c5 100644
 --- a/onnxruntime/core/mlas/lib/x86_64/QgemmU8X8KernelAvx2Common.h
 +++ b/onnxruntime/core/mlas/lib/x86_64/QgemmU8X8KernelAvx2Common.h
 @@ -241,9 +241,9 @@ Implicit Arguments:
@@ -478,7 +542,7 @@ index 172bd9fa..98cfd72b 100644
          jnz     .LSkipAccumulateOutputMasked8xNBlock\@
          EmitIfCountGE \RowCount\(), 1, "vpmaskmovd ymm4,ymm0,YMMWORD PTR [rdx]"
 diff --git a/onnxruntime/core/mlas/lib/x86_64/QgemvU8S8KernelAvx2.S b/onnxruntime/core/mlas/lib/x86_64/QgemvU8S8KernelAvx2.S
-index ef6b0afe..96fbaa4e 100644
+index ef6b0afed..96fbaa4e0 100644
 --- a/onnxruntime/core/mlas/lib/x86_64/QgemvU8S8KernelAvx2.S
 +++ b/onnxruntime/core/mlas/lib/x86_64/QgemvU8S8KernelAvx2.S
 @@ -206,7 +206,7 @@ C_UNDERSCORE(MlasGemvU8S8KernelAvx2):
@@ -522,7 +586,7 @@ index ef6b0afe..96fbaa4e 100644
          vpmaddwd xmm1,xmm1,xmm6
          test    r11,r11                     # ZeroMode?
 diff --git a/onnxruntime/core/mlas/lib/x86_64/SgemmKernelM1Avx.S b/onnxruntime/core/mlas/lib/x86_64/SgemmKernelM1Avx.S
-index 3a02845a..9c585c94 100644
+index 3a02845a5..9c585c948 100644
 --- a/onnxruntime/core/mlas/lib/x86_64/SgemmKernelM1Avx.S
 +++ b/onnxruntime/core/mlas/lib/x86_64/SgemmKernelM1Avx.S
 @@ -81,8 +81,8 @@ C_UNDERSCORE(MlasSgemmKernelM1Avx):
@@ -537,7 +601,7 @@ index 3a02845a..9c585c94 100644
  
  //
 diff --git a/onnxruntime/core/mlas/lib/x86_64/SgemmKernelM1TransposeBAvx.S b/onnxruntime/core/mlas/lib/x86_64/SgemmKernelM1TransposeBAvx.S
-index b3db3998..9366cb91 100644
+index b3db39989..9366cb916 100644
 --- a/onnxruntime/core/mlas/lib/x86_64/SgemmKernelM1TransposeBAvx.S
 +++ b/onnxruntime/core/mlas/lib/x86_64/SgemmKernelM1TransposeBAvx.S
 @@ -80,8 +80,8 @@ C_UNDERSCORE(MlasSgemmKernelM1TransposeBAvx):
@@ -552,7 +616,7 @@ index b3db3998..9366cb91 100644
  
  //
 diff --git a/onnxruntime/core/mlas/lib/x86_64/SgemmKernelSse2.S b/onnxruntime/core/mlas/lib/x86_64/SgemmKernelSse2.S
-index b51a0956..076cb842 100644
+index b51a0956b..076cb8428 100644
 --- a/onnxruntime/core/mlas/lib/x86_64/SgemmKernelSse2.S
 +++ b/onnxruntime/core/mlas/lib/x86_64/SgemmKernelSse2.S
 @@ -169,7 +169,7 @@ Implicit Arguments:
@@ -564,8 +628,21 @@ index b51a0956..076cb842 100644
          shufps  xmm2,xmm2,0
          EmitIfCountGE \RowCount\(), 1, "mulps xmm8,xmm2"
                                              # multiply by alpha
+diff --git a/onnxruntime/core/mlas/lib/x86_64/SoftmaxKernelAvx.S b/onnxruntime/core/mlas/lib/x86_64/SoftmaxKernelAvx.S
+index 7432ff0f9..e1a2df593 100644
+--- a/onnxruntime/core/mlas/lib/x86_64/SoftmaxKernelAvx.S
++++ b/onnxruntime/core/mlas/lib/x86_64/SoftmaxKernelAvx.S
+@@ -45,7 +45,7 @@ Return Value:
+         .globl  C_UNDERSCORE(MlasReduceMaximumF32KernelAvx)
+ C_UNDERSCORE(MlasReduceMaximumF32KernelAvx):
+ 
+-        vbroadcastss ymm0,DWORD PTR C_UNDERSCORE(MlasMinimumF32Value)[rip]
++        vbroadcastss ymm0,DWORD PTR [C_UNDERSCORE(MlasMinimumF32Value)+rip]
+         test    rsi,rsi
+         jz      .LReduceMaximum.ExitKernel
+         cmp     rsi,8
 diff --git a/onnxruntime/core/mlas/lib/x86_64/SpoolKernelAvx.S b/onnxruntime/core/mlas/lib/x86_64/SpoolKernelAvx.S
-index 87490903..495cba0c 100644
+index 874909033..495cba0cf 100644
 --- a/onnxruntime/core/mlas/lib/x86_64/SpoolKernelAvx.S
 +++ b/onnxruntime/core/mlas/lib/x86_64/SpoolKernelAvx.S
 @@ -43,8 +43,8 @@ Implicit Arguments:
@@ -580,7 +657,7 @@ index 87490903..495cba0c 100644
          vxorps  xmm5,xmm5,xmm5              # initialize default divisor vector
  .ifeqs "\PoolingType\()","AverageExcludePad"
 diff --git a/onnxruntime/core/mlas/lib/x86_64/SpoolKernelAvx512F.S b/onnxruntime/core/mlas/lib/x86_64/SpoolKernelAvx512F.S
-index 9433ce85..c0ee77d5 100644
+index 9433ce85c..c0ee77d55 100644
 --- a/onnxruntime/core/mlas/lib/x86_64/SpoolKernelAvx512F.S
 +++ b/onnxruntime/core/mlas/lib/x86_64/SpoolKernelAvx512F.S
 @@ -43,8 +43,8 @@ Implicit Arguments:
@@ -595,7 +672,7 @@ index 9433ce85..c0ee77d5 100644
          vxorps  xmm5,xmm5,xmm5              # initialize default divisor vector
  .ifeqs "\PoolingType\()","AverageExcludePad"
 diff --git a/onnxruntime/core/mlas/lib/x86_64/TanhKernelFma3.S b/onnxruntime/core/mlas/lib/x86_64/TanhKernelFma3.S
-index dd558464..5ac0d3ac 100644
+index dd5584648..5ac0d3ac1 100644
 --- a/onnxruntime/core/mlas/lib/x86_64/TanhKernelFma3.S
 +++ b/onnxruntime/core/mlas/lib/x86_64/TanhKernelFma3.S
 @@ -72,7 +72,7 @@ Return Value:
@@ -620,18 +697,258 @@ index dd558464..5ac0d3ac 100644
          vmaskmovps ymm0,ymm2,YMMWORD PTR [rdi]
          vmaxps  ymm0,ymm4,ymm0                  # clamp lower bound
          vminps  ymm0,ymm5,ymm0                  # clamp upper bound
+diff --git a/onnxruntime/core/mlas/lib/x86_64/TransKernelAvx512F.S b/onnxruntime/core/mlas/lib/x86_64/TransKernelAvx512F.S
+index 0eabe85b2..4bf9f98db 100644
+--- a/onnxruntime/core/mlas/lib/x86_64/TransKernelAvx512F.S
++++ b/onnxruntime/core/mlas/lib/x86_64/TransKernelAvx512F.S
+@@ -46,7 +46,7 @@ Return Value:
+         .globl  C_UNDERSCORE(MlasComputeExpF32KernelAvx512F)
+ C_UNDERSCORE(MlasComputeExpF32KernelAvx512F):
+ 
+-        lea     rax,C_UNDERSCORE(MlasExpConstants)[rip]
++        lea     rax,[C_UNDERSCORE(MlasExpConstants)+rip]
+         vbroadcastss zmm21,.LExpConstants_LowerRange[rax]
+         vbroadcastss zmm22,.LExpConstants_RoundingBias[rax]
+         vbroadcastss zmm23,.LExpConstants_Log2Reciprocal[rax]
+@@ -87,7 +87,7 @@ C_UNDERSCORE(MlasComputeExpF32KernelAvx512F):
+ .LComputeExp.ProcessRemainingCount:
+         add     rdx,16                          # correct for over-subtract above
+         jz      .LComputeExp.ExitKernel
+-        lea     r10,C_UNDERSCORE(MlasOpmask16BitTableAvx512)[rip]
++        lea     r10,[C_UNDERSCORE(MlasOpmask16BitTableAvx512)+rip]
+         kmovw   k1,WORD PTR [r10+rdx*2]
+         vmaxps  zmm16{k1}{z},zmm21,ZMMWORD PTR [rdi]
+                                                 # clamp lower bound
+@@ -136,7 +136,7 @@ Return Value:
+         .globl  C_UNDERSCORE(MlasComputeSumExpF32KernelAvx512F)
+ C_UNDERSCORE(MlasComputeSumExpF32KernelAvx512F):
+ 
+-        lea     rax,C_UNDERSCORE(MlasExpConstants)[rip]
++        lea     rax,[C_UNDERSCORE(MlasExpConstants)+rip]
+         vbroadcastss zmm21,.LExpConstants_LowerRange[rax]
+         vbroadcastss zmm22,.LExpConstants_RoundingBias[rax]
+         vbroadcastss zmm23,.LExpConstants_Log2Reciprocal[rax]
+@@ -224,7 +224,7 @@ C_UNDERSCORE(MlasComputeSumExpF32KernelAvx512F):
+ .LComputeSumExp.ComputeExpBy16Loop:
+         cmp     rdx,16
+         jae     .LComputeSumExp.ProcessSingleVector
+-        lea     r10,C_UNDERSCORE(MlasOpmask16BitTableAvx512)[rip]
++        lea     r10,[C_UNDERSCORE(MlasOpmask16BitTableAvx512)+rip]
+         kmovw   k1,WORD PTR [r10+rdx*2]
+ 
+ .LComputeSumExp.ProcessSingleVector:
+diff --git a/onnxruntime/core/mlas/lib/x86_64/TransKernelFma3.S b/onnxruntime/core/mlas/lib/x86_64/TransKernelFma3.S
+index ae3712365..559af78ca 100644
+--- a/onnxruntime/core/mlas/lib/x86_64/TransKernelFma3.S
++++ b/onnxruntime/core/mlas/lib/x86_64/TransKernelFma3.S
+@@ -46,7 +46,7 @@ Return Value:
+         .globl  C_UNDERSCORE(MlasComputeExpF32KernelFma3)
+ C_UNDERSCORE(MlasComputeExpF32KernelFma3):
+ 
+-        lea     rax,C_UNDERSCORE(MlasExpConstants)[rip]
++        lea     rax,[C_UNDERSCORE(MlasExpConstants)+rip]
+         vbroadcastss ymm4,.LExpConstants_LowerRange[rax]
+         vbroadcastss ymm5,.LExpConstants_UpperRange[rax]
+         vbroadcastss ymm6,.LExpConstants_MinimumExponent[rax]
+@@ -97,7 +97,7 @@ C_UNDERSCORE(MlasComputeExpF32KernelFma3):
+         add     rdx,8                            # correct for over-subtract above
+         jz      .LComputeExp.ExitKernel
+         neg     rdx
+-        lea     r10,C_UNDERSCORE(MlasMaskMoveTableAvx)[rip+8*4]
++        lea     r10,[C_UNDERSCORE(MlasMaskMoveTableAvx)+rip+8*4]
+         vmovups ymm2,YMMWORD PTR [r10+rdx*4]
+         vmaskmovps ymm0,ymm2,YMMWORD PTR [rdi]
+         vmaxps  ymm0,ymm4,ymm0                  # clamp lower bound
+@@ -158,7 +158,7 @@ Return Value:
+         .globl  C_UNDERSCORE(MlasComputeSumExpF32KernelFma3)
+ C_UNDERSCORE(MlasComputeSumExpF32KernelFma3):
+ 
+-        lea     rax,C_UNDERSCORE(MlasExpConstants)[rip]
++        lea     rax,[C_UNDERSCORE(MlasExpConstants)+rip]
+         vbroadcastss ymm9,DWORD PTR [rcx]       # broadcast negative maximum value
+         vxorps  xmm10,xmm10,xmm10               # clear exp() accumulator
+         sub     rdx,24
+@@ -253,7 +253,7 @@ C_UNDERSCORE(MlasComputeSumExpF32KernelFma3):
+         jmp     .LComputeSumExp.ProcessSingleVector
+ 
+ .LComputeSumExp.LoadPartialVector:
+-        lea     r10,C_UNDERSCORE(MlasMaskMoveTableAvx)[rip+8*4]
++        lea     r10,[C_UNDERSCORE(MlasMaskMoveTableAvx)+rip+8*4]
+         neg     rdx                             # carry flag unchanged
+         vmovups ymm3,YMMWORD PTR [r10+rdx*4]
+         vmaskmovps ymm0,ymm3,YMMWORD PTR [rdi]
+diff --git a/onnxruntime/core/providers/cuda/cudnn_common.cc b/onnxruntime/core/providers/cuda/cudnn_common.cc
+index 24f8220eb..91e7cc4b2 100644
+--- a/onnxruntime/core/providers/cuda/cudnn_common.cc
++++ b/onnxruntime/core/providers/cuda/cudnn_common.cc
+@@ -117,7 +117,7 @@ cudnnDataType_t CudnnTensor::GetDataType() {
+   ORT_THROW("cuDNN engine currently supports only single/double/half/int8/uint8 precision data types. Got:",
+     typeid(ElemType).name());
+   // Not reachable but GCC complains
+-  return 0;
++  return (cudnnDataType_t)0;
+ }
+ 
+ template<>
+diff --git a/onnxruntime/core/providers/dnnl/subgraph/dnnl_conv_batchnorm.h b/onnxruntime/core/providers/dnnl/subgraph/dnnl_conv_batchnorm.h
+index 1ebe6301f..9b5d4c455 100644
+--- a/onnxruntime/core/providers/dnnl/subgraph/dnnl_conv_batchnorm.h
++++ b/onnxruntime/core/providers/dnnl/subgraph/dnnl_conv_batchnorm.h
+@@ -2,6 +2,7 @@
+ // Licensed under the MIT License.
+ 
+ #pragma once
++#include <cmath>
+ #include "dnnl_types.h"
+ #include "core/providers/dnnl/dnnl_fwd.h"
+ #include "core/providers/dnnl/dnnl_execution_provider.h"
+diff --git a/onnxruntime/core/providers/shared_library/provider_bridge_provider.cc b/onnxruntime/core/providers/shared_library/provider_bridge_provider.cc
+index fbb061472..7ac43be0e 100644
+--- a/onnxruntime/core/providers/shared_library/provider_bridge_provider.cc
++++ b/onnxruntime/core/providers/shared_library/provider_bridge_provider.cc
+@@ -42,28 +42,34 @@ struct OnUnload {
+ } g_on_unload;
+ 
+ AllocatorPtr CreateAllocator(const AllocatorCreationInfo& info) {
++  g_host = Provider_GetHost();
+   return g_host->CreateAllocator(info);
+ }
+ 
+ void AllocatorManager__InsertAllocator(AllocatorManager* p, AllocatorPtr allocator) {
++  g_host = Provider_GetHost();
+   return g_host->AllocatorManager__InsertAllocator(p, allocator);
+ }
+ 
+ AllocatorPtr AllocatorManager__GetAllocator(AllocatorManager* p, int id, OrtMemType mem_type) {
++  g_host = Provider_GetHost();
+   return g_host->AllocatorManager__GetAllocator(p, id, mem_type);
+ }
+ 
+ template <>
+ MLDataType DataTypeImpl::GetType<float>() {
++  g_host = Provider_GetHost();
+   return g_host->DataTypeImpl_GetType_float();
+ }
+ 
+ template <>
+ MLDataType DataTypeImpl::GetTensorType<float>() {
++  g_host = Provider_GetHost();
+   return g_host->DataTypeImpl_GetTensorType_float();
+ }
+ 
+ const std::vector<MLDataType>& DataTypeImpl::AllFixedSizeTensorTypes() {
++  g_host = Provider_GetHost();
+   return g_host->DataTypeImpl_AllFixedSizeTensorTypes();
+ }
+ 
+@@ -86,6 +92,7 @@ int64_t TensorShape::Size() const {
+ }
+ 
+ int64_t TensorShape::SizeHelper(size_t start, size_t end) const {
++  g_host = Provider_GetHost();
+   return g_host->TensorShape__SizeHelper(this, start, end);
+ }
+ 
+@@ -99,58 +106,71 @@ TensorShape TensorShape::Slice(size_t dimstart) const {
+ }
+ 
+ std::string TensorShape::ToString() const {
++  g_host = Provider_GetHost();
+   return g_host->TensorShape__ToString(this);
+ }
+ 
+ AllocatorPtr CreateAllocator(AllocatorCreationInfo info) {
++  g_host = Provider_GetHost();
+   return g_host->CreateAllocator(info);
+ }
+ 
+ std::unique_ptr<IAllocator> CreateCPUAllocator(const OrtMemoryInfo& info) {
++  g_host = Provider_GetHost();
+   return g_host->CreateCPUAllocator(info);
+ }
+ 
+ bool IAllocator::CalcMemSizeForArrayWithAlignment(size_t nmemb, size_t size, size_t alignment, size_t* out) noexcept {
++  g_host = Provider_GetHost();
+   return g_host->IAllocator__CalcMemSizeForArrayWithAlignment(nmemb, size, alignment, out);
+ }
+ 
+ AllocatorPtr IExecutionProvider::GetAllocator(int id, OrtMemType mem_type) const {
++  g_host = Provider_GetHost();
+   return g_host->IExecutionProvider__GetAllocator(this, id, mem_type);
+ }
+ 
+ void IExecutionProvider::InsertAllocator(AllocatorPtr allocator) {
++  g_host = Provider_GetHost();
+   g_host->IExecutionProvider__InsertAllocator(this, allocator);
+ }
+ 
+ void IExecutionProvider::TryInsertAllocator(AllocatorPtr allocator) {
++  g_host = Provider_GetHost();
+   g_host->IExecutionProvider__TryInsertAllocator(this, allocator);
+ }
+ 
+ std::vector<std::unique_ptr<ComputeCapability>> IExecutionProvider::GetCapability(const onnxruntime::GraphViewer& graph_viewer,
+                                                                                   const std::vector<const KernelRegistry*>& kernel_registries) const {
++  g_host = Provider_GetHost();
+   return g_host->IExecutionProvider__GetCapability(this, graph_viewer, kernel_registries);
+ }
+ 
+ common::Status IExecutionProvider::Compile(const std::vector<onnxruntime::Node*>& fused_nodes,
+                                            std::vector<NodeComputeInfo>& node_compute_funcs) {
++  g_host = Provider_GetHost();
+   return g_host->IExecutionProvider__Compile(this, fused_nodes, node_compute_funcs);
+ }
+ 
+ common::Status IExecutionProvider::Compile(const std::vector<onnxruntime::Node*>& fused_nodes,
+                                            std::string& dll_path) {
++  g_host = Provider_GetHost();
+   return g_host->IExecutionProvider__Compile(this, fused_nodes, dll_path);
+ }
+ 
+ common::Status IExecutionProvider::Compile(const std::vector<FusedNodeAndGraph>& fused_nodes_and_graphs,
+                                            std::vector<NodeComputeInfo>& node_compute_funcs) {
++  g_host = Provider_GetHost();
+   return g_host->IExecutionProvider__Compile(this, fused_nodes_and_graphs, node_compute_funcs);
+ }
+ 
+ int IExecutionProvider::GenerateMetaDefId(const onnxruntime::GraphViewer& graph_viewer, uint64_t& model_hash) const {
++  g_host = Provider_GetHost();
+   return g_host->IExecutionProvider__GenerateMetaDefId(this, graph_viewer, model_hash);
+ }
+ 
+ void IExecutionProvider::RegisterAllocator(std::shared_ptr<AllocatorManager> allocator_manager) {
++  g_host = Provider_GetHost();
+   return g_host->IExecutionProvider__RegisterAllocator(this, allocator_manager);
+ }
+ 
+@@ -169,6 +189,7 @@ std::unique_ptr<IDataTransfer> CreateGPUDataTransfer(void* stream) {
+ #endif
+ 
+ std::string GetEnvironmentVar(const std::string& var_name) {
++  g_host = Provider_GetHost();
+   return g_host->GetEnvironmentVar(var_name);
+ }
+ 
+@@ -218,6 +239,7 @@ std::vector<std::string> GetStackTrace() { return g_host->GetStackTrace(); }
+ 
+ void LogRuntimeError(uint32_t session_id, const common::Status& status,
+                      const char* file, const char* function, uint32_t line) {
++  g_host = Provider_GetHost();
+   return g_host->LogRuntimeError(session_id, status, file, function, line);
+ }
+ 
 diff --git a/tools/ci_build/build.py b/tools/ci_build/build.py
-index b6b54fd6..ce945a54 100755
+index c580ef664..af0f9469d 100644
 --- a/tools/ci_build/build.py
 +++ b/tools/ci_build/build.py
-@@ -326,7 +326,9 @@ def generate_build_tree(cmake_path, source_dir, build_dir, cuda_home, cudnn_home
-     cmake_args = [cmake_path, cmake_dir,
-                  "-Donnxruntime_RUN_ONNX_TESTS=" + ("ON" if args.enable_onnx_tests else "OFF"),
-                  "-Donnxruntime_GENERATE_TEST_REPORTS=ON",
--                 "-Donnxruntime_DEV_MODE=" + ("OFF" if args.android else "ON"),
-+                 "-Donnxruntime_DEV_MODE=OFF",
-+                 "-Donnxruntime_ENABLE_LTO=OFF",
-+                 "-Donnxruntime_BUILD_UNIT_TESTS=OFF",
-                  "-DPYTHON_EXECUTABLE=" + sys.executable,
-                  "-Donnxruntime_USE_CUDA=" + ("ON" if args.use_cuda else "OFF"),
-                  "-Donnxruntime_USE_NSYNC=" + ("OFF" if is_windows() or not args.use_nsync else "ON"),
+@@ -628,7 +628,9 @@ def generate_build_tree(cmake_path, source_dir, build_dir, cuda_home, cudnn_home
+         "-Donnxruntime_RUN_ONNX_TESTS=" + ("ON" if args.enable_onnx_tests else "OFF"),
+         "-Donnxruntime_BUILD_WINML_TESTS=" + ("OFF" if args.skip_winml_tests else "ON"),
+         "-Donnxruntime_GENERATE_TEST_REPORTS=ON",
+-        "-Donnxruntime_DEV_MODE=" + use_dev_mode(args),
++        "-Donnxruntime_DEV_MODE=OFF",
++        "-Donnxruntime_ENABLE_LTO=OFF",
++        "-Donnxruntime_BUILD_UNIT_TESTS=OFF",
+         "-DPYTHON_EXECUTABLE=" + sys.executable,
+         "-Donnxruntime_USE_CUDA=" + ("ON" if args.use_cuda else "OFF"),
+         "-Donnxruntime_CUDNN_HOME=" + (cudnn_home if args.use_cuda else ""),

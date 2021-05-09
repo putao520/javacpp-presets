@@ -4,7 +4,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.bytedeco</groupId>
   <artifactId>javacpp-presets</artifactId>
-  <version>1.5.3-SNAPSHOT</version>
+  <version>1.5.6-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <name>JavaCPP Presets</name>
@@ -61,6 +61,7 @@
     <javacpp.parser.skip>false</javacpp.parser.skip>     <!-- To skip header file parsing phase: -Djavacpp.parser.skip=true  -->
     <javacpp.compiler.skip>false</javacpp.compiler.skip> <!-- To skip native compilation phase: -Djavacpp.compiler.skip=true -->
     <javacpp.moduleId>${project.artifactId}</javacpp.moduleId>
+    <javacpp.nativeRequires/>
     <javacpp.packageName>${project.artifactId}</javacpp.packageName>
     <javacpp.platform.nativeOutputPath>org/bytedeco/${javacpp.packageName}/${javacpp.platform}${javacpp.platform.extension}</javacpp.platform.nativeOutputPath>
     <javacpp.platform.root></javacpp.platform.root>
@@ -297,6 +298,7 @@
               <classOrPackageName>org.bytedeco.${javacpp.packageName}.**</classOrPackageName>
               <copyLibs>true</copyLibs>
               <copyResources>true</copyResources>
+              <configDirectory>${project.build.directory}/native/META-INF/native-image/${javacpp.platform}${javacpp.platform.extension}/</configDirectory>
             </configuration>
           </execution>
         </executions>
@@ -350,6 +352,7 @@
                      without cleaning, ensures we only include files for
                      this platform. -->
                 <include>${javacpp.platform.nativeOutputPath}/</include>
+                <include>META-INF/native-image/${javacpp.platform}${javacpp.platform.extension}/</include>
               </includes>
               <archive>
                 <manifestEntries>
@@ -369,7 +372,7 @@
       <plugin>
         <groupId>org.moditect</groupId>
         <artifactId>moditect-maven-plugin</artifactId>
-        <version>1.0.0.Beta2</version>
+        <version>1.0.0.RC1</version>
         <configuration>
           <jvmVersion>9</jvmVersion>
           <overwriteExistingFiles>true</overwriteExistingFiles>
@@ -393,6 +396,8 @@
                   <moduleInfoSource>
                     open module org.bytedeco.${javacpp.packageName}.${javacpp.platform.module} {
                       requires transitive org.bytedeco.${javacpp.packageName};
+                      requires org.bytedeco.javacpp.${javacpp.platform.module};
+                      ${javacpp.nativeRequires}
                     }
                   </moduleInfoSource>
                 </module>
@@ -475,6 +480,7 @@
         <configuration>
           <serverId>sonatype-nexus-staging</serverId>
           <nexusUrl>https://oss.sonatype.org/</nexusUrl>
+<!--          <skipLocalStaging>true</skipLocalStaging> -->
           <skipStagingRepositoryClose>true</skipStagingRepositoryClose>
         </configuration>
       </plugin>
@@ -585,7 +591,9 @@
         <module>artoolkitplus</module>
         <module>chilitags</module>
         <module>flandmark</module>
+        <module>arrow</module>
         <module>hdf5</module>
+        <module>hyperscan</module>
         <module>mkl</module>
         <module>mkl-dnn</module>
         <module>dnnl</module>
@@ -596,23 +604,31 @@
         <module>gsl</module>
         <module>cpython</module>
         <module>numpy</module>
+        <module>scipy</module>
+        <module>gym</module>
         <module>llvm</module>
         <module>libpostal</module>
         <module>leptonica</module>
         <module>tesseract</module>
         <module>caffe</module>
+        <module>openpose</module>
         <module>cuda</module>
+        <module>nvcodec</module>
+        <module>opencl</module>
         <module>mxnet</module>
+        <module>pytorch</module>
         <module>tensorflow</module>
         <module>tensorrt</module>
         <module>ale</module>
         <module>onnx</module>
         <module>ngraph</module>
         <module>onnxruntime</module>
+        <module>tvm</module>
         <module>liquidfun</module>
         <module>qt</module>
         <module>skia</module>
         <module>cpu_features</module>
+        <module>modsecurity</module>
         <module>systems</module>
       </modules>
       <properties>
@@ -1066,9 +1082,12 @@
         <module>flycapture</module>
         <module>libdc1394</module>
         <module>libfreenect</module>
+        <module>librealsense</module>
+        <module>librealsense2</module>
         <module>artoolkitplus</module>
         <module>chilitags</module>
         <module>flandmark</module>
+        <module>arrow</module>
         <module>hdf5</module>
         <module>openblas</module>
         <module>arpack-ng</module>
@@ -1077,6 +1096,8 @@
         <module>gsl</module>
         <module>cpython</module>
         <module>numpy</module>
+        <module>scipy</module>
+        <module>gym</module>
         <module>llvm</module>
         <module>leptonica</module>
         <module>tesseract</module>
@@ -1117,10 +1138,14 @@
         <module>flycapture</module>
         <module>libdc1394</module>
         <module>libfreenect</module>
+        <module>librealsense</module>
+        <module>librealsense2</module>
         <module>artoolkitplus</module>
         <module>chilitags</module>
         <module>flandmark</module>
+        <module>arrow</module>
         <module>hdf5</module>
+        <module>dnnl</module>
         <module>openblas</module>
         <module>arpack-ng</module>
         <module>cminpack</module>
@@ -1128,9 +1153,15 @@
         <module>gsl</module>
         <module>cpython</module>
         <module>numpy</module>
+        <module>scipy</module>
+        <module>gym</module>
         <module>llvm</module>
         <module>leptonica</module>
         <module>tesseract</module>
+        <module>cuda</module>
+        <module>nvcodec</module>
+        <module>opencl</module>
+        <module>onnxruntime</module>
         <module>cpu_features</module>
         <module>systems</module>
       </modules>
@@ -1170,6 +1201,7 @@
         <module>artoolkitplus</module>
         <module>chilitags</module>
         <module>flandmark</module>
+        <module>arrow</module>
         <module>hdf5</module>
         <module>openblas</module>
         <module>arpack-ng</module>
@@ -1178,10 +1210,13 @@
         <module>gsl</module>
         <module>cpython</module>
         <module>numpy</module>
+        <module>scipy</module>
+        <module>gym</module>
         <module>llvm</module>
         <module>leptonica</module>
         <module>tesseract</module>
         <module>cuda</module>
+        <module>nvcodec</module>
         <module>cpu_features</module>
         <module>systems</module>
       </modules>
@@ -1225,6 +1260,7 @@
         <module>artoolkitplus</module>
         <module>chilitags</module>
         <module>flandmark</module>
+        <module>arrow</module>
         <module>hdf5</module>
         <module>mkl</module>
         <module>openblas</module>
@@ -1234,6 +1270,8 @@
         <module>gsl</module>
         <module>cpython</module>
         <module>numpy</module>
+        <module>scipy</module>
+        <module>gym</module>
         <module>llvm</module>
         <module>leptonica</module>
         <module>tesseract</module>
@@ -1287,7 +1325,9 @@
         <module>artoolkitplus</module>
         <module>chilitags</module>
         <module>flandmark</module>
+        <module>arrow</module>
         <module>hdf5</module>
+        <module>hyperscan</module>
         <module>mkl</module>
         <module>mkl-dnn</module>
         <module>dnnl</module>
@@ -1298,23 +1338,31 @@
         <module>gsl</module>
         <module>cpython</module>
         <module>numpy</module>
+        <module>scipy</module>
+        <module>gym</module>
         <module>llvm</module>
         <module>libpostal</module>
         <module>leptonica</module>
         <module>tesseract</module>
         <module>caffe</module>
+        <module>openpose</module>
         <module>cuda</module>
+        <module>nvcodec</module>
+        <module>opencl</module>
         <module>mxnet</module>
+        <module>pytorch</module>
         <module>tensorflow</module>
         <module>tensorrt</module>
         <module>ale</module>
         <module>onnx</module>
         <module>ngraph</module>
         <module>onnxruntime</module>
+        <module>tvm</module>
         <module>liquidfun</module>
         <module>qt</module>
         <module>skia</module>
         <module>cpu_features</module>
+        <module>modsecurity</module>
         <module>systems</module>
       </modules>
       <properties>
@@ -1356,7 +1404,9 @@
         <module>artoolkitplus</module>
         <module>chilitags</module>
         <module>flandmark</module>
+        <module>arrow</module>
         <module>hdf5</module>
+        <module>hyperscan</module>
         <module>mkl</module>
         <module>mkl-dnn</module>
         <module>dnnl</module>
@@ -1367,22 +1417,29 @@
         <module>gsl</module>
         <module>cpython</module>
         <module>numpy</module>
+        <module>scipy</module>
+        <module>gym</module>
         <module>llvm</module>
         <module>libpostal</module>
         <module>leptonica</module>
         <module>tesseract</module>
         <module>caffe</module>
-        <module>cuda</module>
+        <module>openpose</module>
+<!--        <module>cuda</module>-->
+        <module>opencl</module>
         <module>mxnet</module>
+        <module>pytorch</module>
         <module>tensorflow</module>
         <module>ale</module>
         <module>onnx</module>
         <module>ngraph</module>
         <module>onnxruntime</module>
+        <module>tvm</module>
         <module>liquidfun</module>
         <module>qt</module>
         <module>skia</module>
         <module>cpu_features</module>
+        <module>modsecurity</module>
         <module>systems</module>
       </modules>
       <properties>
@@ -1426,6 +1483,7 @@
         <module>artoolkitplus</module>
         <module>chilitags</module>
         <module>flandmark</module>
+        <module>arrow</module>
         <module>hdf5</module>
         <module>mkl</module>
         <module>openblas</module>
@@ -1435,6 +1493,8 @@
         <module>gsl</module>
         <module>cpython</module>
         <module>numpy</module>
+        <module>scipy</module>
+        <module>gym</module>
         <module>llvm</module>
         <module>leptonica</module>
         <module>tesseract</module>
@@ -1485,7 +1545,9 @@
         <module>artoolkitplus</module>
         <module>chilitags</module>
         <module>flandmark</module>
+        <module>arrow</module>
         <module>hdf5</module>
+        <module>hyperscan</module>
         <module>mkl</module>
         <module>mkl-dnn</module>
         <module>dnnl</module>
@@ -1496,15 +1558,25 @@
         <module>gsl</module>
         <module>cpython</module>
         <module>numpy</module>
+        <module>scipy</module>
+        <module>gym</module>
         <module>llvm</module>
         <module>libpostal</module>
         <module>leptonica</module>
         <module>tesseract</module>
         <module>cuda</module>
+        <module>nvcodec</module>
+        <module>opencl</module>
         <module>mxnet</module>
+        <module>pytorch</module>
         <module>tensorflow</module>
+        <module>tensorrt</module>
         <module>ale</module>
+        <module>onnx</module>
+        <module>onnxruntime</module>
+        <module>tvm</module>
         <module>liquidfun</module>
+        <module>qt</module>
         <module>cpu_features</module>
         <module>systems</module>
       </modules>

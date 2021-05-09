@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Samuel Audet
+ * Copyright (C) 2017-2020 Samuel Audet
  *
  * Licensed either under the Apache License, Version 2.0, or (at your option)
  * under the terms of the GNU General Public License as published by
@@ -26,6 +26,7 @@ import org.bytedeco.javacpp.Loader;
 import org.bytedeco.javacpp.annotation.NoException;
 import org.bytedeco.javacpp.annotation.Platform;
 import org.bytedeco.javacpp.annotation.Properties;
+import org.bytedeco.javacpp.presets.javacpp;
 import org.bytedeco.javacpp.tools.BuildEnabled;
 import org.bytedeco.javacpp.tools.Info;
 import org.bytedeco.javacpp.tools.InfoMap;
@@ -36,15 +37,17 @@ import org.bytedeco.javacpp.tools.Logger;
  *
  * @author Samuel Audet
  */
-@Properties(value = {@Platform(value = "macosx-x86",
-    include = {"cpuid.h", "dlfcn.h", "nl_types.h", "xlocale.h", "_locale.h", "langinfo.h", "locale.h",
+@Properties(inherit = javacpp.class, value = {@Platform(value = "macosx-x86", define = "__STDC_WANT_LIB_EXT1__ 1",
+    include = {"cpuid.h", "dlfcn.h", "nl_types.h", "_xlocale.h", "xlocale.h", "_locale.h", "langinfo.h", "locale.h",
                "sys/uio.h", "sys/_types/_iovec_t.h", "sys/socket.h", "sys/errno.h", "string.h", "stdlib.h", /*"sys/types.h",*/
                "sys/_types/_timespec.h", "sys/_types/_timeval.h", "sys/time.h", "time.h", "utime.h",
                "sys/_types/_s_ifmt.h", "sys/_types/_filesec_t.h", "sys/stat.h", "fcntl.h", "sys/file.h", "grp.h", "pwd.h",
                "sys/_types/_sigaltstack.h", "sys/signal.h", "signal.h", /*"sys/_types/_ucontext.h", "sys/ucontext.h", "ucontext.h",*/
                "sched.h", "mach/machine.h", "spawn.h", "sys/_types/_seek_set.h", "sys/unistd.h", "unistd.h",
                "sys/poll.h", "sys/reboot.h", "sys/resource.h", "sys/sysctl.h", "sys/wait.h"},
-    includepath = "/usr/include")}, target = "org.bytedeco.systems.macosx", global = "org.bytedeco.systems.global.macosx")
+    includepath = {"/usr/include/", "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/",
+                   "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/"})},
+    target = "org.bytedeco.systems.macosx", global = "org.bytedeco.systems.global.macosx")
 @NoException
 public class macosx implements BuildEnabled, InfoMapper {
     static { Loader.checkVersion("org.bytedeco", "systems"); }
@@ -84,7 +87,7 @@ public class macosx implements BuildEnabled, InfoMapper {
                              "_STRUCT_TIMESPEC", "_STRUCT_TIMEVAL", "_STRUCT_SIGALTSTACK", "_STRUCT_UCONTEXT",
                              "__extension__", "__header_always_inline", "__inline", "__mode__",
                              "__nonnull", "_Nullable", "__restrict", "__CLOCK_AVAILABILITY", "__OS_AVAILABILITY_MSG",
-                             "__IOS_PROHIBITED", "__TVOS_PROHIBITED", "__WATCHOS_PROHIBITED",
+                             "__DYLDDL_DRIVERKIT_UNAVAILABLE", "__IOS_PROHIBITED", "__TVOS_PROHIBITED", "__WATCHOS_PROHIBITED",
                              "ru_first", "ru_last", "sv_onstack").annotations().cppTypes())
 
                .put(new Info("_POSIX2_VERSION", "_POSIX2_C_VERSION", "_POSIX2_C_BIND",
@@ -131,7 +134,7 @@ public class macosx implements BuildEnabled, InfoMapper {
                .put(new Info("union wait").pointerTypes("wait"))
 
                .put(new Info("LC_ALL_MASK").cppTypes("int").translate(false))
-               .put(new Info("LC_GLOBAL_LOCALE").cppTypes("locale_t").translate(false))
+               .put(new Info("LC_GLOBAL_LOCALE", "LC_C_LOCALE").cppTypes("locale_t").translate(false))
                .put(new Info("PF_VLAN", "PF_BOND").cppTypes("int").translate(false))
                .put(new Info("RTLD_NEXT", "RTLD_DEFAULT", "RTLD_SELF", "RTLD_MAIN_ONLY").cppTypes("void*").translate(false))
                .put(new Info("SAE_ASSOCID_ANY", "SAE_ASSOCID_ALL", "SAE_CONNID_ANY", "SAE_CONNID_ALL").cppTypes("long").translate(false))
@@ -144,6 +147,8 @@ public class macosx implements BuildEnabled, InfoMapper {
                .put(new Info("__cpuid").cppTypes("void", "int", "int&", "int&", "int&", "int&"))
                .put(new Info("__cpuid_count").cppTypes("void", "int", "int", "int&", "int&", "int&", "int&"))
 
-               .put(new Info("getwd", "mkstemp_dprotected_np").skip());
+               .put(new Info("memchr").javaText("public static native Pointer memchr(Pointer __s, int __c, @Cast(\"size_t\") long __n);"))
+
+               .put(new Info("getwd", "mkstemp_dprotected_np", "posix_spawnattr_setsuidcredport_np").skip());
     }
 }

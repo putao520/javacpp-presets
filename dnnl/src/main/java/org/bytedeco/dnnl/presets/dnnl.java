@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2019 Samuel Audet, Alexander Merritt
+ * Copyright (C) 2018-2020 Samuel Audet, Alexander Merritt
  *
  * Licensed either under the Apache License, Version 2.0, or (at your option)
  * under the terms of the GNU General Public License as published by
@@ -22,42 +22,51 @@
 
 package org.bytedeco.dnnl.presets;
 
+import java.util.List;
+import org.bytedeco.javacpp.Loader;
 import org.bytedeco.javacpp.annotation.Platform;
 import org.bytedeco.javacpp.annotation.Properties;
+import org.bytedeco.javacpp.presets.javacpp;
 import org.bytedeco.javacpp.tools.Info;
 import org.bytedeco.javacpp.tools.InfoMap;
 import org.bytedeco.javacpp.tools.InfoMapper;
+
+import org.bytedeco.opencl.presets.*;
 
 /**
  *
  * @author Samuel Audet
  */
 @Properties(
+    inherit = OpenCL.class,
     value = {
         @Platform(
-            value = {"linux-x86_64", "macosx-x86_64", "windows-x86_64"},
+            value = {"linux-arm64", "linux-ppc64le", "linux-x86_64", "macosx-x86_64", "windows-x86_64"},
             compiler = "cpp11",
             define = {"GENERIC_EXCEPTION_CLASS dnnl::error", "GENERIC_EXCEPTION_TOSTRING toStdString().c_str()"},
-            include = {"dnnl_config.h", "dnnl_types.h", /*"dnnl_debug.h",*/ "dnnl_version.h", "dnnl.h", "dnnl.hpp"},
-            link = "dnnl@.1", preload = {"gomp@.1", "iomp5"}),
-        @Platform(
-            value = "macosx-x86_64",
-            preload = {"gcc_s@.1", "gomp@.1", "stdc++@.6", "iomp5"},
-            preloadpath = {"/usr/local/lib/gcc/8/", "/usr/local/lib/gcc/7/", "/usr/local/lib/gcc/6/", "/usr/local/lib/gcc/5/"}),
-        @Platform(
-            value = "windows-x86_64",
-            preload = {"libwinpthread-1", "libgcc_s_seh-1", "libgomp-1", "libstdc++-6", "libiomp5md", "libdnnl"})},
-    target = "org.bytedeco.dnnl", global = "org.bytedeco.dnnl.global.dnnl")
+            include = {"oneapi/dnnl/dnnl_types.h", "oneapi/dnnl/dnnl_config.h", /*"oneapi/dnnl/dnnl_debug.h",*/ "oneapi/dnnl/dnnl_version.h", "oneapi/dnnl/dnnl.h", "oneapi/dnnl/dnnl.hpp"},
+            link = "dnnl@.2", preload = {"gomp@.1", "iomp5", "omp", "tbb@.2"}, resource = {"include", "lib"}
+        ),
+    },
+    target = "org.bytedeco.dnnl",
+    global = "org.bytedeco.dnnl.global.dnnl"
+)
 public class dnnl implements InfoMapper {
+    static { Loader.checkVersion("org.bytedeco", "dnnl"); }
+
     public void map(InfoMap infoMap) {
         infoMap.put(new Info().enumerate())
                .put(new Info("DNNL_HELPER_DLL_IMPORT", "DNNL_HELPER_DLL_EXPORT", "DNNL_API",
                              "DNNL_MEMORY_NONE", "DNNL_MEMORY_ALLOCATE").cppTypes().annotations())
-               .put(new Info("DNNL_VERSION_HASH").translate(false))
+               .put(new Info("DNNL_VERSION_HASH", "DNNL_RUNTIME_F32_VAL").translate(false))
+               .put(new Info("DNNL_RUNTIME_DIM_VAL").cppTypes("long long").translate(false))
                .put(new Info("DNNL_DEPRECATED").cppText("#define DNNL_DEPRECATED deprecated").cppTypes())
                .put(new Info("deprecated").annotations("@Deprecated"))
                .put(new Info("DOXYGEN_SHOULD_SKIP_THIS").define())
-               .put(new Info("DNNL_GPU_RUNTIME == DNNL_RUNTIME_OCL").define(false))
+               .put(new Info("DNNL_CPU_RUNTIME == DNNL_RUNTIME_THREADPOOL",
+                             "DNNL_CPU_THREADING_RUNTIME == DNNL_RUNTIME_THREADPOOL",
+                             "DNNL_GPU_RUNTIME == DNNL_RUNTIME_OCL").define(false))
+               .put(new Info("DNNL_RUNTIME_F32_VAL_REP").skip())
 
                .put(new Info("dnnl_dims_t").cppTypes("int64_t* const"))
                .put(new Info("dnnl_memory_t").valueTypes("dnnl_memory").pointerTypes("@ByPtrPtr dnnl_memory", "@Cast(\"dnnl_memory_t*\") PointerPointer"))
@@ -76,6 +85,8 @@ public class dnnl implements InfoMapper {
                .put(new Info("const_dnnl_primitive_t").valueTypes("@Const dnnl_primitive").pointerTypes("@Const @ByPtrPtr dnnl_primitive", "@Cast(\"const_dnnl_primitive_t*\") PointerPointer"))
                .put(new Info("dnnl_stream_t").valueTypes("dnnl_stream").pointerTypes("@ByPtrPtr dnnl_stream", "@Cast(\"dnnl_stream_t*\") PointerPointer"))
                .put(new Info("const_dnnl_stream_t").valueTypes("@Const dnnl_stream").pointerTypes("@Const @ByPtrPtr dnnl_stream", "@Cast(\"const_dnnl_stream_t*\") PointerPointer"))
+//               .put(new Info("dnnl_stream_attr_t").valueTypes("dnnl_stream_attr").pointerTypes("@ByPtrPtr dnnl_stream_attr", "@Cast(\"dnnl_stream_attr_t*\") PointerPointer"))
+//               .put(new Info("const_dnnl_stream_attr_t").valueTypes("@Const dnnl_stream_attr").pointerTypes("@Const @ByPtrPtr dnnl_stream_attr", "@Cast(\"const_dnnl_stream_attr_t*\") PointerPointer"))
 
                .put(new Info("dnnl::primitive_desc").pointerTypes("org.bytedeco.dnnl.primitive_desc"))
                .put(new Info("dnnl::memory::dims").annotations("@Cast({\"dnnl_dim_t*\", \"std::vector<dnnl_dim_t>&\"}) @StdVector(\"dnnl_dim_t\")").pointerTypes("LongPointer", "LongBuffer", "long[]"))
@@ -89,12 +100,15 @@ public class dnnl implements InfoMapper {
 //               .put(new Info("std::vector<dnnl::primitive::at>").pointerTypes("primitive_at_vector").define())
 //               .put(new Info("std::vector<dnnl::memory::primitive_desc>").pointerTypes("memory_primitive_desc_vector").define())
 
-               .put(new Info("dnnl::memory::data_type").pointerTypes("memory.data_type"))
-               .put(new Info("dnnl::memory::format_tag").pointerTypes("memory.format_tag"))
-               .put(new Info("dnnl::stream::flags").pointerTypes("stream.flags"))
-               .put(new Info("dnnl::primitive::kind").pointerTypes("primitive.kind"))
+               .put(new Info("dnnl::memory::data_type").valueTypes("memory.data_type").enumerate())
+               .put(new Info("dnnl::memory::format_tag").valueTypes("memory.format_tag").enumerate())
+               .put(new Info("dnnl::stream::flags").valueTypes("stream.flags").enumerate())
+               .put(new Info("dnnl::primitive::kind").valueTypes("primitive.kind").enumerate())
 
-               .put(new Info("dnnl::handle_traits").skip())
+               .put(new Info("dnnl::handle_traits", "dnnl::primitive_attr(dnnl_primitive_attr_t)",
+                             "dnnl::reorder::primitive_desc(dnnl_primitive_desc_t)",
+                             "dnnl::concat::primitive_desc(dnnl_primitive_desc_t)",
+                             "dnnl::sum::primitive_desc(dnnl_primitive_desc_t)").skip())
                .put(new Info("dnnl::handle<dnnl_engine_t>", "dnnl::handle<dnnl_engine_t,traits>").pointerTypes("dnnl_engine_handle"))
                .put(new Info("dnnl::handle<dnnl_memory_t>", "dnnl::handle<dnnl_memory_t,traits>").pointerTypes("dnnl_memory_handle"))
                .put(new Info("dnnl::handle<dnnl_primitive_desc_t>", "dnnl::handle<dnnl_primitive_desc_t,traits>").pointerTypes("dnnl_primitive_desc_handle"))
@@ -102,6 +116,7 @@ public class dnnl implements InfoMapper {
                .put(new Info("dnnl::handle<dnnl_post_ops_t>", "dnnl::handle<dnnl_post_ops_t,traits>").pointerTypes("dnnl_post_ops_handle"))
                .put(new Info("dnnl::handle<dnnl_primitive_t>", "dnnl::handle<dnnl_primitive_t,traits>").pointerTypes("dnnl_primitive_handle"))
                .put(new Info("dnnl::handle<dnnl_stream_t>", "dnnl::handle<dnnl_stream_t,traits>").pointerTypes("dnnl_stream_handle"))
+//               .put(new Info("dnnl::handle<dnnl_stream_attr_t>", "dnnl::handle<dnnl_stream_attr_t,traits>").pointerTypes("dnnl_stream_attr_handle"))
 
                .put(new Info("std::unordered_map<int,dnnl::memory>").pointerTypes("IntMemoryMap").define())
                .put(new Info("dnnl::primitive::get_primitive_desc").javaNames("get_dnnl_primitive_desc"))

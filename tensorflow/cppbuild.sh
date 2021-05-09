@@ -10,42 +10,41 @@ fi
 export PYTHON_BIN_PATH=$(which python3)
 export USE_DEFAULT_PYTHON_LIB_PATH=1
 export CC_OPT_FLAGS=-O3
-export TF_NEED_MKL=0
-export TF_NEED_VERBS=0
-export TF_NEED_JEMALLOC=0
+#export TF_NEED_MKL=0
+#export TF_NEED_VERBS=0
+#export TF_NEED_JEMALLOC=0
+#export TF_NEED_AWS=0
+#export TF_NEED_GCP=0
+#export TF_NEED_HDFS=0
+#export TF_NEED_KAFKA=0
+#export TF_NEED_S3=0
+#export TF_NEED_OPENCL=0
+#export TF_NEED_GDR=0
+#export TF_NEED_TENSORRT=0
+#export TF_NEED_NGRAPH=0
+#export TF_NEED_IGNITE=0
 export TF_NEED_CUDA=0
-export TF_NEED_AWS=0
-export TF_NEED_GCP=0
-export TF_NEED_HDFS=0
-export TF_NEED_KAFKA=0
-export TF_NEED_S3=0
-export TF_NEED_OPENCL=0
 export TF_NEED_OPENCL_SYCL=0
 export TF_NEED_MPI=0
-export TF_NEED_GDR=0
-export TF_NEED_TENSORRT=0
-export TF_NEED_NGRAPH=0
-export TF_NEED_IGNITE=0
 export TF_NEED_ROCM=0
 export TF_ENABLE_XLA=0
 export TF_CUDA_CLANG=0
-export TF_CUDA_VERSION=10.1
-export TF_CUDNN_VERSION=7
+export TF_CUDA_VERSION=11.3
+export TF_CUDNN_VERSION=8
 export TF_DOWNLOAD_CLANG=0
-export TF_NCCL_VERSION=2.4
-export TF_TENSORRT_VERSION=6.0
+export TF_NCCL_VERSION=2.9
+export TF_TENSORRT_VERSION=7.2
 export GCC_HOST_COMPILER_PATH=$(which gcc)
 export ACTUAL_GCC_HOST_COMPILER_PATH=$(which -a gcc | grep -v /ccache/ | head -1) # skip ccache
 export CUDA_TOOLKIT_PATH=/usr/local/cuda
 export CUDNN_INSTALL_PATH=$CUDA_TOOLKIT_PATH
 export NCCL_INSTALL_PATH=$CUDA_TOOLKIT_PATH
 export TENSORRT_INSTALL_PATH=/usr/local/tensorrt
-export TF_CUDA_COMPUTE_CAPABILITIES=3.0
+export TF_CUDA_COMPUTE_CAPABILITIES=3.5
 export TF_SET_ANDROID_WORKSPACE=0
-export TF_IGNORE_MAX_BAZEL_VERSION=1
-export TF_CONFIGURE_IOS=0
+#export TF_IGNORE_MAX_BAZEL_VERSION=1
 
-TENSORFLOW_VERSION=1.15.0
+TENSORFLOW_VERSION=1.15.5
 
 download https://github.com/tensorflow/tensorflow/archive/v$TENSORFLOW_VERSION.tar.gz tensorflow-$TENSORFLOW_VERSION.tar.gz
 
@@ -62,11 +61,11 @@ if [[ -n "${BUILD_PATH:-}" ]]; then
     PREVIFS="$IFS"
     IFS="$BUILD_PATH_SEPARATOR"
     for P in $BUILD_PATH; do
-        if [[ -f "$P/include/python3.7m/Python.h" ]]; then
+        if [[ -f "$P/include/python3.9/Python.h" ]]; then
             CPYTHON_PATH="$P"
-            export PYTHON_BIN_PATH="$CPYTHON_PATH/bin/python3.7"
-            export PYTHON_INCLUDE_PATH="$CPYTHON_PATH/include/python3.7m/"
-            export PYTHON_LIB_PATH="$CPYTHON_PATH/lib/python3.7/"
+            export PYTHON_BIN_PATH="$CPYTHON_PATH/bin/python3.9"
+            export PYTHON_INCLUDE_PATH="$CPYTHON_PATH/include/python3.9/"
+            export PYTHON_LIB_PATH="$CPYTHON_PATH/lib/python3.9/"
             export USE_DEFAULT_PYTHON_LIB_PATH=0
             chmod +x "$PYTHON_BIN_PATH"
         elif [[ -f "$P/include/Python.h" ]]; then
@@ -130,13 +129,21 @@ sedinplace 's/std::vector<TensorShape> value/std::vector<TensorShape>* value/g' 
 sedinplace 's/NvInferRTSafe.h/NvInferRuntimeCommon.h/g' third_party/tensorrt/tensorrt_configure.bzl
 sedinplace 's/NvInferRTExt.h/NvInferRuntime.h/g' third_party/tensorrt/tensorrt_configure.bzl
 
+# Fix support for CUDA 11.x
+sedinplace 's/cudnn.h/cudnn_version.h/g' third_party/gpus/find_cuda_config.py
+sedinplace 's/if check_soname/if False/g' third_party/gpus/cuda_configure.bzl
+patch -Np1 < ../../../tensorflow-cuda11.patch
+
+# Fix build with NumPy 1.19.0
+sedinplace 's/, CompareUFunc/, (PyUFuncGenericFunction)CompareUFunc/g' tensorflow/python/lib/core/bfloat16.cc
+
 export GPU_FLAGS=
-export CMAKE_GPU_FLAGS=
+#export CMAKE_GPU_FLAGS=
 if [[ "$EXTENSION" == *gpu ]]; then
     export TF_NEED_CUDA=1
     export TF_NEED_TENSORRT=1
     export GPU_FLAGS="--config=cuda"
-    export CMAKE_GPU_FLAGS="-Dtensorflow_ENABLE_GPU=ON -Dtensorflow_CUDA_VERSION=$TF_CUDA_VERSION -Dtensorflow_CUDNN_VERSION=$TF_CUDNN_VERSION"
+    #export CMAKE_GPU_FLAGS="-Dtensorflow_ENABLE_GPU=ON -Dtensorflow_CUDA_VERSION=$TF_CUDA_VERSION -Dtensorflow_CUDNN_VERSION=$TF_CUDNN_VERSION"
 fi
 
 if [[ "$TF_NEED_CUDA" == 0 ]] || [[ ! -d "$TENSORRT_INSTALL_PATH" ]]; then
@@ -193,7 +200,7 @@ case $PLATFORM in
         ;;
     linux-x86_64)
         patch -Np1 < ../../../tensorflow-java.patch
-        export TF_NEED_MKL=1
+        #export TF_NEED_MKL=1
         export BUILDFLAGS="--config=mkl --copt=-msse4.1 --copt=-msse4.2 --copt=-mavx `#--copt=-mavx2 --copt=-mfma` $GPU_FLAGS --action_env PYTHONPATH --action_env PATH --action_env LD_LIBRARY_PATH --copt=-m64 --linkopt=-m64 --linkopt=-s"
         export CUDA_HOME=$CUDA_TOOLKIT_PATH
         export LD_LIBRARY_PATH=/usr/local/cuda/lib64:/usr/local/cuda/extras/CUPTI/lib64:${LD_LIBRARY_PATH:-}
@@ -213,7 +220,8 @@ case $PLATFORM in
         patch -Np1 < ../../../tensorflow-java.patch
         # allows us to use ccache with Bazel
         export BAZEL_USE_CPP_ONLY_TOOLCHAIN=1
-        export TF_NEED_MKL=1
+        export TF_CONFIGURE_IOS=0
+        #export TF_NEED_MKL=1
         export BUILDFLAGS="--config=mkl --config=nonccl --copt=-msse4.1 --copt=-msse4.2 --copt=-mavx `#--copt=-mavx2 --copt=-mfma` $GPU_FLAGS --action_env PYTHONPATH --action_env PATH --action_env LD_LIBRARY_PATH --action_env DYLD_LIBRARY_PATH --linkopt=-install_name --linkopt=@rpath/libtensorflow_cc.so --linkopt=-s"
         export CUDA_HOME=$CUDA_TOOLKIT_PATH
         export DYLD_LIBRARY_PATH=/usr/local/cuda/lib:/usr/local/cuda/extras/CUPTI/lib
@@ -228,9 +236,11 @@ case $PLATFORM in
         patch -Np1 < ../../../tensorflow-java.patch
         # https://github.com/tensorflow/tensorflow/issues/25213
         patch -Np1 < ../../../tensorflow-windows.patch
+        sedinplace 's/"10"/"64_10"/g' tensorflow/stream_executor/platform/default/dso_loader.cc
+        sedinplace 's/"11.0"/"64_110"/g' tensorflow/stream_executor/platform/default/dso_loader.cc
         sedinplace 's/{diff_dst_index}, diff_src_index/{(int)diff_dst_index}, (int)diff_src_index/g' tensorflow/core/kernels/mkl_relu_op.cc
         if [[ ! -f $PYTHON_BIN_PATH ]]; then
-            export PYTHON_BIN_PATH="C:/Program Files/Python36/python.exe"
+            export PYTHON_BIN_PATH="$(which python.exe)"
         fi
         export BAZEL_VC="${VCINSTALLDIR:-}"
         export BAZEL_VC_FULL_VERSION="${VCToolsVersion:-}"
@@ -238,7 +248,7 @@ case $PLATFORM in
         export NO_WHOLE_ARCHIVE_OPTION=1
         # disable __forceinline for Eigen to speed up the build
         export TF_OVERRIDE_EIGEN_STRONG_INLINE=1
-        export TF_NEED_MKL=1
+        #export TF_NEED_MKL=1
         export BUILDTARGETS="///tensorflow:tensorflow_static ///tensorflow/java:tensorflow"
         export BUILDFLAGS="--config=mkl --copt=//arch:AVX `#--copt=//arch:AVX2` $GPU_FLAGS --action_env PYTHONPATH --action_env PATH --copt=//DGRPC_ARES=0 --copt=//DPB_FIELD_16BIT=1 --copt=//machine:x64 --linkopt=//machine:x64"
         export CUDA_TOOLKIT_PATH="C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v$TF_CUDA_VERSION"
@@ -250,6 +260,7 @@ case $PLATFORM in
             OPENBLAS_PATH=$(cygpath $OPENBLAS_PATH)
             export BUILDTARGETS="///tensorflow/tools/pip_package:build_pip_package ///tensorflow/java:tensorflow"
             export PATH="$CPYTHON_PATH:$MKLDNN_PATH:$OPENBLAS_PATH:$PATH"
+            unset LD_LIBRARY_PATH
         fi
 # old hacks for the now obsolete CMake build
 #        # help cmake's findCuda-method to find the right cuda version
@@ -290,13 +301,35 @@ if [[ "$EXTENSION" =~ python ]]; then
 fi
 
 # prevent Bazel from exceeding maximum command line length on Windows
-unset BUILD_PATH
-unset ORIGINAL_PATH
-unset PLATFORM_ARTIFACTS
-unset PLATFORM_INCLUDEPATH
-unset PLATFORM_LINKPATH
-unset PLATFORM_PRELOADPATH
+while read -r l; do
+    if [[ $l == ANDROID_* ]] || [[ $l == APPVEYOR_* ]] || [[ $l == BUILD_* ]] || [[ $l == CI_DEPLOY_* ]] || [[ $l == GITHUB_* ]] || [[ $l == GOROOT* ]] || [[ $l == JAVA_HOME_* ]] || [[ $l == MAVEN_* ]] || [[ $l == ORIGINAL_* ]] || [[ $l == PG* ]] || [[ $l == PLATFORM_* ]] || [[ $l == RUNNER_* ]]; then
+        unset ${l%%=*}
+    fi
+done < <(env)
+unset AZURE_EXTENSION_DIR
+unset MonAgentClientLocation
+unset PSModulePath
 unset __VSCMD_PREINIT_PATH
+
+echo Reducing PATH size by removing duplicates and truncating to satisfy Bazel
+PREVIFS="$IFS"
+NEWPATH="${PATH%%:*}"
+IFS=":"
+for P in $PATH; do
+    FOUND=0
+    for P2 in $NEWPATH; do
+        if [[ "$P" == "$P2" ]]; then
+            FOUND=1
+        fi
+    done
+    if [[ "$FOUND" == "0" ]] && [[ ${#NEWPATH} -lt 3000 ]]; then
+        NEWPATH=$NEWPATH:$P
+    fi
+done
+IFS="$PREVIFS"
+echo ${#PATH}
+echo ${#NEWPATH}
+export PATH=$NEWPATH
 
 bash configure
 bazel build -c opt $BUILDTARGETS --config=monolithic $BUILDFLAGS --spawn_strategy=standalone --genrule_strategy=standalone --output_filter=DONT_MATCH_ANYTHING --verbose_failures

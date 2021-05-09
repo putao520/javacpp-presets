@@ -1,7 +1,7 @@
-diff -ruN OpenBLAS-0.3.0/common.h OpenBLAS-0.3.0-android/common.h
---- OpenBLAS-0.3.0/common.h	2018-05-23 22:12:20.000000000 +0900
-+++ OpenBLAS-0.3.0-android/common.h	2018-06-18 09:26:43.880728641 +0900
-@@ -100,9 +100,9 @@
+diff -ruN OpenBLAS-0.3.13/common.h OpenBLAS-0.3.13-android/common.h
+--- OpenBLAS-0.3.13/common.h	2020-12-13 02:19:29.000000000 +0900
++++ OpenBLAS-0.3.13-android/common.h	2020-12-14 13:33:34.956706380 +0900
+@@ -102,9 +102,9 @@
  #ifdef OS_ANDROID
  #define NO_SYSV_IPC
  //Android NDK only supports complex.h since Android 5.0
@@ -12,17 +12,20 @@ diff -ruN OpenBLAS-0.3.0/common.h OpenBLAS-0.3.0-android/common.h
 +//#endif
  #endif
  
- #ifdef OS_WINDOWS
-diff -ruN OpenBLAS-0.3.0/Makefile.system OpenBLAS-0.3.0-android/Makefile.system
---- OpenBLAS-0.3.0/Makefile.system	2018-05-23 22:12:20.000000000 +0900
-+++ OpenBLAS-0.3.0-android/Makefile.system	2018-06-18 10:05:38.104367497 +0900
-@@ -1000,7 +1000,9 @@
+ #ifdef OS_HAIKU
+diff -ruN OpenBLAS-0.3.13/Makefile.system OpenBLAS-0.3.13-android/Makefile.system
+--- OpenBLAS-0.3.13/Makefile.system	2020-12-13 02:19:29.000000000 +0900
++++ OpenBLAS-0.3.13-android/Makefile.system	2020-12-14 13:36:32.282877280 +0900
+@@ -1318,11 +1318,9 @@
  
  include $(TOPDIR)/Makefile.$(ARCH)
  
+-ifneq ($(C_COMPILER), PGI)
+-ifneq ($(C_COMPILER), SUN)
 +ifneq ($(TOPDIR),.)
+ CCOMMON_OPT     += -UASMNAME -UASMFNAME -UNAME -UCNAME -UCHAR_NAME -UCHAR_CNAME
+ endif
+-endif
  CCOMMON_OPT	+= -DASMNAME=$(FU)$(*F) -DASMFNAME=$(FU)$(*F)$(BU) -DNAME=$(*F)$(BU) -DCNAME=$(*F) -DCHAR_NAME=\"$(*F)$(BU)\" -DCHAR_CNAME=\"$(*F)\"
-+endif 
  
  ifeq ($(CORE), PPC440)
- CCOMMON_OPT	+= -DALLOC_QALLOC

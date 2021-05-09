@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015-2019 Samuel Audet
+ * Copyright (C) 2015-2021 Samuel Audet
  *
  * Licensed either under the Apache License, Version 2.0, or (at your option)
  * under the terms of the GNU General Public License as published by
@@ -36,6 +36,7 @@ import org.bytedeco.javacpp.annotation.Cast;
 import org.bytedeco.javacpp.annotation.Platform;
 import org.bytedeco.javacpp.annotation.Properties;
 import org.bytedeco.javacpp.annotation.StdString;
+import org.bytedeco.javacpp.presets.javacpp;
 import org.bytedeco.javacpp.tools.BuildEnabled;
 import org.bytedeco.javacpp.tools.Info;
 import org.bytedeco.javacpp.tools.InfoMap;
@@ -56,7 +57,7 @@ import java.util.List;
  *
  * @author Samuel Audet
  */
-@Properties(value = {
+@Properties(inherit = javacpp.class, value = {
         @Platform(
                 value = {"linux", "macosx", "windows"},
                 compiler = "cpp11",
@@ -156,6 +157,8 @@ import java.util.List;
                         "tensorflow/c/checkpoint_reader.h",
                         "tensorflow/c/c_api.h",
                         "tensorflow/c/c_api_internal.h",
+                        "tensorflow/c/tf_status_internal.h",
+                        "tensorflow/c/tf_tensor_internal.h",
                         "tensorflow/c/env.h",
                         "tensorflow/c/kernels.h",
                         "tensorflow/c/ops.h",
@@ -257,7 +260,7 @@ import java.util.List;
                 value = {"linux-arm64", "linux-ppc64le", "linux-x86_64", "macosx-x86_64"},
                 extension = {"-gpu", "-python", "-python-gpu"},
                 link = "tensorflow_cc#",
-                preload = {"iomp5", "mklml", "mklml_intel", "python3.7m@.1.0!", "python3.7!", "tensorflow_framework", "tensorflow_cc:python/tensorflow/python/_pywrap_tensorflow_internal.so", "tensorflow_cc:libtensorflow_cc.so.1"},
+                preload = {"iomp5", "mklml", "mklml_intel", "python3.9@.1.0!", "tensorflow_framework", "tensorflow_cc:python/tensorflow/python/_pywrap_tensorflow_internal.so", "tensorflow_cc:libtensorflow_cc.so.1"},
                 resource = "python",
                 preloadresource = {"/org/bytedeco/cpython/", "/org/bytedeco/mkldnn/"}),
         @Platform(
@@ -268,27 +271,7 @@ import java.util.List;
 //                        "Advapi32#", "double-conversion", "zlibstatic", "gpr", "grpc_unsecure", "grpc++_unsecure", "farmhash", "fft2d",
 //                        "lmdb", "giflib", "libjpeg", "libpng16_static", "nsync", "nsync_cpp", "libprotobuf", "re2", "snappy", "sqlite", "mklml", "mkldnn",
 //                        "tensorflow_static", "tf_protos_cc", "tf_cc_op_gen_main", "tf_python_protos_cc", "tf_c_python_api"},
-                preload = {"api-ms-win-crt-locale-l1-1-0", "api-ms-win-crt-string-l1-1-0", "api-ms-win-crt-stdio-l1-1-0", "api-ms-win-crt-math-l1-1-0",
-                           "api-ms-win-crt-heap-l1-1-0", "api-ms-win-crt-runtime-l1-1-0", "api-ms-win-crt-convert-l1-1-0", "api-ms-win-crt-environment-l1-1-0",
-                           "api-ms-win-crt-time-l1-1-0", "api-ms-win-crt-filesystem-l1-1-0", "api-ms-win-crt-utility-l1-1-0", "api-ms-win-crt-multibyte-l1-1-0",
-                           "api-ms-win-core-string-l1-1-0", "api-ms-win-core-errorhandling-l1-1-0", "api-ms-win-core-timezone-l1-1-0", "api-ms-win-core-file-l1-1-0",
-                           "api-ms-win-core-namedpipe-l1-1-0", "api-ms-win-core-handle-l1-1-0", "api-ms-win-core-file-l2-1-0", "api-ms-win-core-heap-l1-1-0",
-                           "api-ms-win-core-libraryloader-l1-1-0", "api-ms-win-core-synch-l1-1-0", "api-ms-win-core-processthreads-l1-1-0",
-                           "api-ms-win-core-processenvironment-l1-1-0", "api-ms-win-core-datetime-l1-1-0", "api-ms-win-core-localization-l1-2-0",
-                           "api-ms-win-core-sysinfo-l1-1-0", "api-ms-win-core-synch-l1-2-0", "api-ms-win-core-console-l1-1-0", "api-ms-win-core-debug-l1-1-0",
-                           "api-ms-win-core-rtlsupport-l1-1-0", "api-ms-win-core-processthreads-l1-1-1", "api-ms-win-core-file-l1-2-0", "api-ms-win-core-profile-l1-1-0",
-                           "api-ms-win-core-memory-l1-1-0", "api-ms-win-core-util-l1-1-0", "api-ms-win-core-interlocked-l1-1-0", "ucrtbase",
-                           "msvcr120", "libiomp5md", "mklml", "vcruntime140", "msvcp140", "concrt140", "vcomp140", "python37"}),
-        @Platform(
-                value = "windows-x86",
-                preloadpath = {"C:/Program Files (x86)/Microsoft Visual Studio 14.0/VC/redist/x86/Microsoft.VC140.CRT/",
-                               "C:/Program Files (x86)/Microsoft Visual Studio 14.0/VC/redist/x86/Microsoft.VC140.OpenMP/",
-                               "C:/Program Files (x86)/Windows Kits/10/Redist/ucrt/DLLs/x86/"}),
-        @Platform(
-                value = "windows-x86_64",
-                preloadpath = {"C:/Program Files (x86)/Microsoft Visual Studio 14.0/VC/redist/x64/Microsoft.VC140.CRT/",
-                               "C:/Program Files (x86)/Microsoft Visual Studio 14.0/VC/redist/x64/Microsoft.VC140.OpenMP/",
-                               "C:/Program Files (x86)/Windows Kits/10/Redist/ucrt/DLLs/x64/"}),
+                preload = {"msvcr120", "libiomp5md", "mklml", "python39"}),
         @Platform(
                 value = "windows-x86_64",
                 extension = {"-gpu", "-python", "-python-gpu"},
@@ -301,9 +284,9 @@ import java.util.List;
 //                        "lmdb", "giflib", "libjpeg", "libpng16_static", "nsync", "nsync_cpp", "libprotobuf", "re2", "snappy", "sqlite", "mklml", "mkldnn",
 //                        "cudart", "cudart_static", "cuda", "cublasLt", "cublas", "cudnn", "cufft", "cufftw", "curand", "cusolver", "cusparse", "cupti",
 //                        "tf_core_gpu_kernels", "tensorflow_static", "tf_protos_cc", "tf_cc_op_gen_main",  "tf_python_protos_cc", "tf_c_python_api"},
-                includepath = {"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v10.1/include/"},
-                linkpath    = {"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v10.1/lib/x64/",
-                               "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v10.1/extras/CUPTI/lib64/"}),
+                includepath = {"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v11.3/include/"},
+                linkpath    = {"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v11.3/lib/x64/",
+                               "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v11.3/extras/CUPTI/lib64/"}),
         @Platform(
                 value = {"android"},
                 compiler = {"cpp11"},
@@ -403,6 +386,8 @@ import java.util.List;
                         "tensorflow/c/checkpoint_reader.h",
                         "tensorflow/c/c_api.h",
                         "tensorflow/c/c_api_internal.h",
+                        "tensorflow/c/tf_status_internal.h",
+                        "tensorflow/c/tf_tensor_internal.h",
                         "tensorflow/c/env.h",
                         "tensorflow/c/kernels.h",
                         "tensorflow/c/ops.h",
@@ -497,12 +482,12 @@ public class tensorflow implements BuildEnabled, LoadEnabled, InfoMapper {
 
         int i = 0;
         if (load.equals("mkl") || load.equals("mkl_rt")) {
-            String[] libs = {"iomp5", "libiomp5md", "mkl_core", "mkl_avx", "mkl_avx2", "mkl_avx512", "mkl_avx512_mic",
-                             "mkl_def", "mkl_mc", "mkl_mc3", "mkl_intel_lp64", "mkl_intel_thread", "mkl_gnu_thread", "mkl_rt"};
+            String[] libs = {"iomp5", "libiomp5md", "mkl_core@.1", "mkl_avx@.1", "mkl_avx2@.1", "mkl_avx512@.1", "mkl_avx512_mic@.1",
+                             "mkl_def@.1", "mkl_mc@.1", "mkl_mc3@.1", "mkl_intel_lp64@.1", "mkl_intel_thread@.1", "mkl_gnu_thread@.1", "mkl_rt@.1"};
             for (i = 0; i < libs.length; i++) {
                 preloads.add(i, libs[i] + "#" + libs[i]);
             }
-            load = "mkl_rt";
+            load = "mkl_rt@.1";
             resources.add("/org/bytedeco/mkl/");
         }
 
@@ -520,20 +505,29 @@ public class tensorflow implements BuildEnabled, LoadEnabled, InfoMapper {
         if (!Loader.isLoadLibraries() || extension == null || !extension.endsWith("-gpu")) {
             return;
         }
-        String[] libs = {"cudart", "cublasLt", "cublas", "cufft", "curand", "cusolver", "cusparse", "cudnn", "nccl", "nvinfer"};
+        String[] libs = {"cudart", "cublasLt", "cublas", "cufft", "curand", "cusolver", "cusparse", "cudnn", "nccl", "nvrtc", "myelin", "nvinfer",
+                         "cudnn_ops_infer", "cudnn_ops_train", "cudnn_adv_infer", "cudnn_adv_train", "cudnn_cnn_infer", "cudnn_cnn_train"};
         for (String lib : libs) {
-            switch (platform) {
-                case "linux-arm64":
-                case "linux-ppx64le":
-                case "linux-x86_64":
-                case "macosx-x86_64":
-                    lib += lib.equals("cudnn") ? "@.7" : lib.equals("nccl") ? "@.2" : lib.equals("nvinfer") ? "@.5" : lib.equals("cudart") ? "@.10.1" : "@.10";
-                    break;
-                case "windows-x86_64":
-                    lib += lib.equals("cudnn") ? "64_7" : lib.equals("cudart") ? "64_101" : "64_10";
-                    break;
-                default:
-                    continue; // no CUDA
+            if (platform.startsWith("linux")) {
+                lib += lib.startsWith("cudnn") ? "@.8"
+                     : lib.equals("nccl") ? "@.2"
+                     : lib.equals("myelin") ? "@.1"
+                     : lib.equals("nvinfer") ? "@.7"
+                     : lib.equals("cufft") || lib.equals("curand") ? "@.10"
+                     : lib.equals("cudart") ? "@.11.0"
+                     : lib.equals("nvrtc") ? "@.11.3"
+                     : "@.11";
+            } else if (platform.startsWith("windows")) {
+                lib += lib.startsWith("cudnn") ? "64_8"
+                     : lib.equals("nccl") ? "64_2"
+                     : lib.equals("myelin") ? "64_1"
+                     : lib.equals("nvinfer") ? "64_7"
+                     : lib.equals("cufft") || lib.equals("curand") ? "64_10"
+                     : lib.equals("cudart") ? "64_110"
+                     : lib.equals("nvrtc") ? "64_113_0"
+                     : "64_11";
+            } else {
+                continue; // no CUDA
             }
             if (!preloads.contains(lib)) {
                 preloads.add(i++, lib);
@@ -542,22 +536,6 @@ public class tensorflow implements BuildEnabled, LoadEnabled, InfoMapper {
         if (i > 0) {
             resources.add("/org/bytedeco/cuda/");
             resources.add("/org/bytedeco/tensorrt/");
-        }
-
-        String vcredistdir = System.getenv("VCToolsRedistDir");
-        if (vcredistdir != null && vcredistdir.length() > 0) {
-            switch (platform) {
-                case "windows-x86":
-                    preloadpaths.add(0, vcredistdir + "\\x86\\Microsoft.VC141.CRT");
-                    preloadpaths.add(1, vcredistdir + "\\x86\\Microsoft.VC141.OpenMP");
-                    break;
-                case "windows-x86_64":
-                    preloadpaths.add(0, vcredistdir + "\\x64\\Microsoft.VC141.CRT");
-                    preloadpaths.add(1, vcredistdir + "\\x64\\Microsoft.VC141.OpenMP");
-                    break;
-                default:
-                    // not Windows
-            }
         }
     }
 
@@ -586,6 +564,7 @@ public class tensorflow implements BuildEnabled, LoadEnabled, InfoMapper {
                .put(new Info("SWIG", "TENSORFLOW_LITE_PROTOS").define(true))
                .put(new Info("TENSORFLOW_USE_SYCL", "defined(PLATFORM_GOOGLE)", "defined(TENSORFLOW_PROTOBUF_USES_CORD)", "GOOGLE_PROTOBUF_ENABLE_EXPERIMENTAL_PARSER").define(false))
                .put(new Info("std::hash<Eigen::half>").pointerTypes("HalfHash"))
+               .put(new Info("GenericNumTraits<tensorflow::bfloat16>").pointerTypes("Pointer"))
                .put(new Info("Eigen::NumTraits<tensorflow::bfloat16>").pointerTypes("bfloat16NumTraits"))
                .put(new Info("Eigen::QInt8", "Eigen::QUInt8").cast().valueTypes("byte").pointerTypes("BytePointer", "ByteBuffer", "byte..."))
                .put(new Info("Eigen::QInt16", "Eigen::QUInt16", "uint16", "tensorflow::uint16", "Eigen::half").cast().valueTypes("short").pointerTypes("ShortPointer", "ShortBuffer", "short..."))
@@ -1046,6 +1025,11 @@ public class tensorflow implements BuildEnabled, LoadEnabled, InfoMapper {
                              "TFE_MonitoringStringGauge0", "TFE_MonitoringStringGauge1", "TFE_MonitoringStringGauge2",
                              "TFE_MonitoringBoolGauge0", "TFE_MonitoringBoolGauge1", "TFE_MonitoringBoolGauge2",
                              "TFE_MonitoringSampler0", "TFE_MonitoringSampler1", "TFE_MonitoringSampler2").purify())
+               .put(new Info("TFE_MonitoringCounter<0>", "TFE_MonitoringCounter<1>", "TFE_MonitoringCounter<2>",
+                             "TFE_MonitoringGauge<bool,0>", "TFE_MonitoringGauge<bool,1>", "TFE_MonitoringGauge<bool,2>",
+                             "TFE_MonitoringGauge<tensorflow::int64,0>", "TFE_MonitoringGauge<tensorflow::int64,1>", "TFE_MonitoringGauge<tensorflow::int64,2>",
+                             "TFE_MonitoringGauge<tensorflow::string,0>", "TFE_MonitoringGauge<tensorflow::string,1>", "TFE_MonitoringGauge<tensorflow::string,2>",
+                             "TFE_MonitoringSampler<0>", "TFE_MonitoringSampler<1>", "TFE_MonitoringSampler<2>").pointerTypes("Pointer"))
                .put(new Info("TF_Operation::node").javaText("public native @MemberGetter @ByRef Node node();"))
                .put(new Info("TFE_MonitoringCounterCell::cell").javaText("public native @MemberGetter @ByRef CounterCell cell();"))
                .put(new Info("TFE_MonitoringSamplerCell::cell").javaText("public native @MemberGetter @ByRef SamplerCell cell();"))

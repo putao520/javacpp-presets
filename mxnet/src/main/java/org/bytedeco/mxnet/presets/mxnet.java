@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2019 Samuel Audet
+ * Copyright (C) 2016-2020 Samuel Audet
  *
  * Licensed either under the Apache License, Version 2.0, or (at your option)
  * under the terms of the GNU General Public License as published by
@@ -42,18 +42,18 @@ import org.bytedeco.opencv.presets.*;
  */
 @Properties(inherit = {openblas.class, opencv_imgcodecs.class, opencv_highgui.class}, target = "org.bytedeco.mxnet", global = "org.bytedeco.mxnet.global.mxnet", value = {
     @Platform(value = {"linux", "macosx", "windows"}, compiler = {"cpp11", "fastfpu"},
-        define = {"DMLC_USE_CXX11 1", "MSHADOW_USE_CBLAS 1", "MSHADOW_IN_CXX11 1", "MSHADOW_USE_CUDA 0", "MSHADOW_USE_F16C 0"},
-        include = {"mxnet/c_api.h", "mxnet/c_predict_api.h", /*"dmlc/base.h", "dmlc/io.h", "dmlc/logging.h", "dmlc/type_traits.h",
+        define = {"DMLC_USE_CXX11 1", "MSHADOW_USE_CBLAS 1", "MSHADOW_IN_CXX11 1", "MSHADOW_USE_CUDA 0", "MSHADOW_USE_F16C 0", "MXNET_USE_TVM_OP 0"},
+        include = {"mxnet/c_api.h", "mxnet/c_predict_api.h", "nnvm/c_api.h", /*"dmlc/base.h", "dmlc/io.h", "dmlc/logging.h", "dmlc/type_traits.h",
                    "dmlc/parameter.h", "mshadow/base.h", "mshadow/expression.h", "mshadow/tensor.h", "mxnet/base.h",*/
                    "org_apache_mxnet_init_native_c_api.cc", "org_apache_mxnet_native_c_api.cc"},
-        link = "mxnet", preload = {"mkldnn@.0", "libmxnet"}, /*resource = {"include", "lib"},*/
+        link = "mxnet", preload = {"mkldnn@.1", "libmxnet"}, /*resource = {"include", "lib"},*/
         includepath = {"/System/Library/Frameworks/vecLib.framework/", "/System/Library/Frameworks/Accelerate.framework/"}),
     @Platform(value = {"linux-arm64", "linux-ppc64le", "linux-x86_64", "macosx-x86_64", "windows-x86_64"},
-        define = {"DMLC_USE_CXX11 1", "MSHADOW_USE_CBLAS 1", "MSHADOW_IN_CXX11 1", "MSHADOW_USE_CUDA 1", "MSHADOW_USE_F16C 0"},
-        link = {"cudart@.10.1#", "cuda@.1#", "mxnet"}, preload = {"mkldnn@.0", "libmxnet"},
-        includepath = {"/usr/local/cuda/include/", "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v10.1/include/"},
-        linkpath = {"/usr/local/cuda/lib/", "/usr/local/cuda/lib64/", "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v10.1/lib/x64/"},
-        preloadpath = {"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v10.1/bin/"}, extension = "-gpu") })
+        define = {"DMLC_USE_CXX11 1", "MSHADOW_USE_CBLAS 1", "MSHADOW_IN_CXX11 1", "MSHADOW_USE_CUDA 1", "MSHADOW_USE_F16C 0", "MXNET_USE_TVM_OP 0"},
+        link = {"cudart@.11.0#", "cuda@.1#", "mxnet"}, preload = {"mkldnn@.1", "libmxnet", "mxnet_35"},
+        includepath = {"/usr/local/cuda/include/", "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v11.3/include/"},
+        linkpath = {"/usr/local/cuda/lib/", "/usr/local/cuda/lib64/", "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v11.3/lib/x64/"},
+        preloadpath = {"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v11.3/bin/"}, extension = "-gpu") })
 public class mxnet implements LoadEnabled, InfoMapper {
     static { Loader.checkVersion("org.bytedeco", "mxnet"); }
 
@@ -65,7 +65,7 @@ public class mxnet implements LoadEnabled, InfoMapper {
 
         // Only apply this at load time since we don't want to copy the MKL or CUDA libraries here
         if (Loader.isLoadLibraries()) {
-            List<String> l = Arrays.asList("iomp5", "libiomp5md", "mklml", "mklml_intel");
+            List<String> l = Arrays.asList("gomp@.1", "iomp5", "libiomp5md", "mklml", "mklml_intel");
             if (!preloads.containsAll(l)) {
                 preloads.addAll(0, l);
             }
@@ -77,20 +77,25 @@ public class mxnet implements LoadEnabled, InfoMapper {
             return;
         }
         int i = 0;
-        String[] libs = {"cudart", "cublasLt", "cublas", "cufft", "curand", "cusolver", "cudnn", "nccl", "nvrtc"};
+        String[] libs = {"cudart", "cublasLt", "cublas", "cufft", "curand", "cusolver", "cudnn", "nccl", "nvrtc",
+                         "cudnn_ops_infer", "cudnn_ops_train", "cudnn_adv_infer", "cudnn_adv_train", "cudnn_cnn_infer", "cudnn_cnn_train"};
         for (String lib : libs) {
-            switch (platform) {
-                case "linux-arm64":
-                case "linux-ppc64le":
-                case "linux-x86_64":
-                case "macosx-x86_64":
-                    lib += lib.equals("cudnn") ? "@.7" : lib.equals("nccl") ? "@.2" : lib.equals("nvrtc") || lib.equals("cudart") ? "@.10.1" : "@.10";
-                    break;
-                case "windows-x86_64":
-                    lib += lib.equals("cudnn") ? "64_7" : lib.equals("nvrtc") ? "64_101_0" : lib.equals("cudart") ? "64_101" : "64_10";
-                    break;
-                default:
-                    continue; // no CUDA
+            if (platform.startsWith("linux")) {
+                lib += lib.startsWith("cudnn") ? "@.8"
+                     : lib.equals("nccl") ? "@.2"
+                     : lib.equals("cufft") || lib.equals("curand") ? "@.10"
+                     : lib.equals("cudart") ? "@.11.0"
+                     : lib.equals("nvrtc") ? "@.11.3"
+                     : "@.11";
+            } else if (platform.startsWith("windows")) {
+                lib += lib.startsWith("cudnn") ? "64_8"
+                     : lib.equals("nccl") ? "64_2"
+                     : lib.equals("cufft") || lib.equals("curand") ? "64_10"
+                     : lib.equals("cudart") ? "64_110"
+                     : lib.equals("nvrtc") ? "64_113_0"
+                     : "64_11";
+            } else {
+                continue; // no CUDA
             }
             if (!preloads.contains(lib)) {
                 preloads.add(i++, lib);
@@ -103,7 +108,10 @@ public class mxnet implements LoadEnabled, InfoMapper {
 
     public void map(InfoMap infoMap) {
         infoMap.put(new Info("org_apache_mxnet_init_native_c_api.cc", "org_apache_mxnet_native_c_api.cc").skip())
-               .put(new Info("MXNET_EXTERN_C", "MXNET_DLL").cppTypes().annotations())
+               .put(new Info("MXNET_EXTERN_C", "MXNET_DLL", "NNVM_DLL").cppTypes().annotations())
+               .put(new Info("MSHADOW_USE_F16C", "MXNET_USE_TVM_OP").define(false))
+               .put(new Info("MXNDArrayCreateSparseEx64", "MXNDArrayGetAuxNDArray64", "MXNDArrayGetAuxType64",
+                             "MXNDArrayGetShape64", "MXSymbolInferShape64", "MXSymbolInferShapePartial64").skip())
                .put(new Info("NDArrayHandle").valueTypes("NDArrayHandle").pointerTypes("PointerPointer", "@Cast(\"NDArrayHandle*\") @ByPtrPtr NDArrayHandle"))
                .put(new Info("const NDArrayHandle").valueTypes("NDArrayHandle").pointerTypes("@Cast(\"NDArrayHandle*\") PointerPointer", "@Cast(\"NDArrayHandle*\") @ByPtrPtr NDArrayHandle"))
                .put(new Info("FunctionHandle").annotations("@Const").valueTypes("FunctionHandle").pointerTypes("PointerPointer", "@Cast(\"FunctionHandle*\") @ByPtrPtr FunctionHandle"))

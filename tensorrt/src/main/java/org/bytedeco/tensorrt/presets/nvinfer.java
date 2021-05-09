@@ -33,22 +33,39 @@ import org.bytedeco.javacpp.tools.InfoMap;
 import org.bytedeco.javacpp.tools.InfoMapper;
 
 import org.bytedeco.cuda.presets.cudart;
+import org.bytedeco.cuda.presets.cublas;
+import org.bytedeco.cuda.presets.cudnn;
+import org.bytedeco.cuda.presets.nvrtc;
 
 /**
  *
  * @author Samuel Audet
  */
 @Properties(
-    inherit = cudart.class,
-    value = @Platform(
-        value = "linux-x86_64",
-        compiler = "cpp11",
-        include = {"NvInferVersion.h", "NvInferRuntimeCommon.h", "NvInferRuntime.h", "NvInfer.h", "NvUtils.h"},
-        includepath = {"/usr/include/x86_64-linux-gnu/", "/usr/local/tensorrt/include/"},
-        link = "nvinfer@.6",
-        linkpath = {"/usr/lib/x86_64-linux-gnu/", "/usr/local/tensorrt/lib/"}),
+    inherit = {cublas.class, cudnn.class, nvrtc.class},
+    value = {
+        @Platform(
+            value = {"linux-x86_64", "windows-x86_64"},
+            compiler = "cpp11",
+            include = {"NvInferVersion.h", "NvInferRuntimeCommon.h", "NvInferRuntime.h", "NvInfer.h", "NvUtils.h"},
+            link = "nvinfer@.7"
+        ),
+        @Platform(
+            value = "linux-x86_64",
+            includepath = {"/usr/include/x86_64-linux-gnu/", "/usr/local/tensorrt/include/"},
+            linkpath = {"/usr/lib/x86_64-linux-gnu/", "/usr/local/tensorrt/lib/"},
+            preload = "myelin@.1"
+        ),
+        @Platform(
+            value = "windows-x86_64",
+            includepath = "C:/Program Files/NVIDIA GPU Computing Toolkit/TensorRT/include",
+            linkpath = "C:/Program Files/NVIDIA GPU Computing Toolkit/TensorRT/lib/",
+            preload = "myelin64_1"
+        )
+    },
     target = "org.bytedeco.tensorrt.nvinfer",
-    global = "org.bytedeco.tensorrt.global.nvinfer")
+    global = "org.bytedeco.tensorrt.global.nvinfer"
+)
 public class nvinfer implements LoadEnabled, InfoMapper {
     static { Loader.checkVersion("org.bytedeco", "tensorrt"); }
 
@@ -58,13 +75,21 @@ public class nvinfer implements LoadEnabled, InfoMapper {
         List<String> resources = properties.get("platform.preloadresource");
 
         // Only apply this at load time since we don't want to copy the CUDA libraries here
-        if (!Loader.isLoadLibraries() || !platform.equals("linux-x86_64")) {
+        if (!Loader.isLoadLibraries()) {
             return;
         }
         int i = 0;
-        String[] libs = {"cudart", "cublasLt", "cublas", "cudnn"};
+        String[] libs = {"cudart", "cublasLt", "cublas", "cudnn", "nvrtc",
+                         "cudnn_ops_infer", "cudnn_ops_train", "cudnn_adv_infer",
+                         "cudnn_adv_train", "cudnn_cnn_infer", "cudnn_cnn_train"};
         for (String lib : libs) {
-            lib += lib.equals("cudnn") ? "@.7" : lib.equals("cudart") ? "@.10.1" : "@.10";
+            if (platform.startsWith("linux")) {
+                lib += lib.startsWith("cudnn") ? "@.8" : lib.equals("cudart") ? "@.11.0" : lib.equals("nvrtc") ? "@.11.3" : "@.11";
+            } else if (platform.startsWith("windows")) {
+                lib += lib.startsWith("cudnn") ? "64_8" : lib.equals("cudart") ? "64_110" : lib.equals("nvrtc") ? "64_113_0" : "64_11";
+            } else {
+                continue; // no CUDA
+            }
             if (!preloads.contains(lib)) {
                 preloads.add(i++, lib);
             }
@@ -89,19 +114,12 @@ public class nvinfer implements LoadEnabled, InfoMapper {
                .put(new Info("nvinfer1::EnumMax").skip())
                .put(new Info("nvinfer1::Weights::values").javaText("public native @Const Pointer values(); public native Weights values(Pointer values);"))
                .put(new Info("nvinfer1::IRaggedSoftMaxLayer", "nvinfer1::IIdentityLayer", "nvinfer1::ISoftMaxLayer",
-                             "nvinfer1::IConcatenationLayer", "nvinfer1::IInt8EntropyCalibrator", "nvinfer1::IInt8EntropyCalibrator2",
-                             "nvinfer1::IInt8MinMaxCalibrator", "nvinfer1::IParametricReLULayer", "nvinfer1::IShapeLayer").purify())
+                             "nvinfer1::IConcatenationLayer", "nvinfer1::IParametricReLULayer", "nvinfer1::IShapeLayer", "nvinfer1::ISelectLayer").purify())
                .put(new Info("nvinfer1::IGpuAllocator::free").javaNames("_free"))
-               .put(new Info("nvinfer1::IProfiler", "nvinfer1::ILogger").purify().virtualize())
+               .put(new Info("nvinfer1::IProfiler", "nvinfer1::ILogger", "nvinfer1::IInt8Calibrator", "nvinfer1::IInt8EntropyCalibrator",
+                             "nvinfer1::IInt8EntropyCalibrator2", "nvinfer1::IInt8MinMaxCalibrator", "nvinfer1::IInt8LegacyCalibrator").virtualize())
                .put(new Info("nvinfer1::IPluginRegistry::getPluginCreatorList").javaText(
                              "public native @Cast(\"nvinfer1::IPluginCreator*const*\") PointerPointer getPluginCreatorList(IntPointer numCreators);"))
-               .put(new Info("nvinfer1::IProfiler::~IProfiler").javaText("\n"
-                     + "/** Default native constructor. */\n"
-                     + "public IProfiler() { super((Pointer)null); allocate(); }\n"
-                     + "private native void allocate();\n"))
-               .put(new Info("nvinfer1::ILogger::~ILogger").javaText("\n"
-                     + "/** Default native constructor. */\n"
-                     + "public ILogger() { super((Pointer)null); allocate(); }\n"
-                     + "private native void allocate();\n"));
+        ;
     }
 }

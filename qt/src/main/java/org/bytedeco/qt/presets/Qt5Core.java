@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Greg Hart, Samuel Audet
+ * Copyright (C) 2019-2020 Greg Hart, Samuel Audet
  *
  * Licensed either under the Apache License, Version 2.0, or (at your option)
  * under the terms of the GNU General Public License as published by
@@ -27,10 +27,12 @@ import java.util.Map;
 import org.bytedeco.javacpp.Loader;
 import org.bytedeco.javacpp.annotation.Platform;
 import org.bytedeco.javacpp.annotation.Properties;
+import org.bytedeco.javacpp.presets.javacpp;
 import org.bytedeco.javacpp.tools.Info;
 import org.bytedeco.javacpp.tools.InfoMap;
 
 @Properties(
+    inherit = javacpp.class,
     target = "org.bytedeco.qt.Qt5Core",
     global = "org.bytedeco.qt.global.Qt5Core",
     helper = "org.bytedeco.qt.helper.Qt5Core",
@@ -65,10 +67,10 @@ public class Qt5Core extends QtInfoMapper {
     super.map(infoMap);
     infoMap
         .put(new Info("Q_CORE_EXPORT", "Q_INVOKABLE").cppTypes().annotations())
-        .put(new Info("QT_ASCII_CAST_WARN", "QT_DEPRECATED").cppTypes().annotations("@Deprecated"))
+        .put(new Info("QT_ASCII_CAST_WARN", "QT_DEPRECATED", "QT_DEPRECATED_VERSION_5_14").cppTypes().annotations("@Deprecated"))
 
         // Helper classes
-        .put(new Info("QString").base("AbstractQString"))
+        .put(new Info("QString").base("AbstractQString").virtualize())
 
         // Line patterns
         .put(new Info("qabstracteventdispatcher.h").linePatterns(
@@ -103,6 +105,10 @@ public class Qt5Core extends QtInfoMapper {
         .put(new Info("QVariant::toString").javaNames("toQString"))
 
         // Methods
+        .put(new Info("QObject::event")
+            .javaText("@Virtual protected native @Cast(\"bool\") boolean event(QEvent event);"))
+        .put(new Info("QObject::eventFilter")
+            .javaText("@Virtual protected native @Cast(\"bool\") boolean eventFilter(QObject watched, QEvent event);"))
         .put(new Info("QString::toStdString")
             .javaText("public native @StdString String toStdString();"));
   }
@@ -114,9 +120,11 @@ public class Qt5Core extends QtInfoMapper {
         "QT_DEPRECATED_SINCE(5, 0)",
         "QT_DEPRECATED_SINCE(5, 9)",
         "QT_DEPRECATED_SINCE(5, 13)",
+        "QT_DEPRECATED_SINCE(5, 15)",
 
         // qnamespace.h
         "defined(Q_COMPILER_CLASS_ENUM) && defined(Q_COMPILER_CONSTEXPR)",
+        "defined(Q_COMPILER_CONSTEXPR)",
         "Q_MOC_RUN",
 
         // QObject
@@ -217,22 +225,27 @@ public class Qt5Core extends QtInfoMapper {
     macros.put("quint64", "unsigned long long");
     macros.put("qlonglong", "long long");
     macros.put("qulonglong", "unsigned long long");
+    macros.put("qintptr", "long int");
     macros.put("uchar", "unsigned char");
     macros.put("ushort", "unsigned short");
     macros.put("uint", "unsigned int");
     macros.put("ulong", "unsigned long");
     macros.put("qreal", "double");
+    macros.put("milliseconds", "long long");
 
     // Macros
     macros.put("Q_ALWAYS_INLINE", "inline");
     macros.put("Q_DECL_COLD_FUNCTION", "");
     macros.put("Q_DECL_CONSTEXPR", "");
+    macros.put("Q_DECL_ENUMERATOR_DEPRECATED_X", "");
+    macros.put("Q_DECL_ENUMERATOR_DEPRECATED", "");
     macros.put("Q_DECL_DEPRECATED", "");
     macros.put("Q_DECL_NOEXCEPT", "");
     macros.put("Q_DECL_NOTHROW", "");
     macros.put("Q_DECL_RELAXED_CONSTEXPR", "");
     macros.put("Q_DECL_UNUSED", "");
-    macros.put("Q_DECLARE_FLAGS", "#define Q_DECLARE_FLAGS(arg0, arg1)");
+    macros.put("Q_DECLARE_FLAGS(arg0, arg1)", "");
+    macros.put("Q_DUMMY_COMPARISON_OPERATOR(arg0)", "");
     macros.put("Q_DECLARE_OPERATORS_FOR_FLAGS(arg0)", "");
     macros.put("Q_DECLARE_PRIVATE(arg0)", "");
     macros.put("Q_DECLARE_SHARED(arg0)", "");
@@ -287,10 +300,12 @@ public class Qt5Core extends QtInfoMapper {
         "QMargins",
         "QMetaMethod",
         "QMetaObject::Connection",
+        "QMimeData",
         "QModelIndex",
         "QObjectList",
         "QObjectUserData",
         "QPersistentModelIndex",
+        "QPostEventList",
         "QPoint",
         "QPointF",
         "QRect",
@@ -336,6 +351,23 @@ public class Qt5Core extends QtInfoMapper {
         "QVariant::PrivateShared",
         "reverse_iterator",
         "std::reverse_iterator"
+    };
+  }
+
+  @Override
+  protected String[] virtual() {
+    return new String[]{
+//        "QAbstractEventDispatcher",
+        "QByteArray",
+        "QCoreApplication",
+        "QCoreEvent",
+        "QEventLoop",
+        "QObject",
+        "QSize",
+//        "QString",
+        "QStringList",
+        "QThread",
+        "QVariant"
     };
   }
 }

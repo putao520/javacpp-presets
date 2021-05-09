@@ -6,12 +6,12 @@
   <parent>
     <groupId>org.bytedeco</groupId>
     <artifactId>javacpp-presets</artifactId>
-    <version>1.5.3-SNAPSHOT</version>
+    <version>1.5.6-SNAPSHOT</version>
   </parent>
 
   <groupId>org.bytedeco</groupId>
   <artifactId>cuda</artifactId>
-  <version>10.1-7.6-${project.parent.version}</version>
+  <version>11.3-8.1-${project.parent.version}</version>
   <name>JavaCPP Presets for CUDA</name>
 
   <dependencies>
@@ -46,6 +46,7 @@
               <classifier>${javacpp.platform}</classifier>
               <includes>
                 <include>org/bytedeco/cuda/${javacpp.platform}/*jni*</include>
+                <include>META-INF/native-image/${javacpp.platform}/</include>
               </includes>
             </configuration>
           </execution>
@@ -60,6 +61,7 @@
               <classesDirectory>${project.build.directory}/native</classesDirectory>
               <includes>
                 <include>org/bytedeco/cuda/${javacpp.platform}/</include>
+                <include>META-INF/native-image/${javacpp.platform}/</include>
               </includes>
               <excludes>
                 <exclude>org/bytedeco/cuda/${javacpp.platform}/*jni*</exclude>

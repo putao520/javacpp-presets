@@ -32,6 +32,7 @@ echo Extension: $EXT
 echo Branch: $APPVEYOR_REPO_BRANCH
 
 bash --version
+git --version
 g++ --version
 java -version
 mvn --version
@@ -79,34 +80,34 @@ fi
 if [[ "$PROJ" =~ spinnaker ]]; then
        echo Spinnaker install
        if [ "$OS" == "windows-x86_64" ]; then
-           if [[ $(find /c/Downloads/Spinnaker_*_v140_x64.msi -type f -size +1000000c 2>/dev/null) ]]; then
+           if [[ $(find /c/Downloads/Spinnaker_1.27.0.48_*_v140_x64.msi -type f -size +1000000c 2>/dev/null) ]]; then
              echo "Found spinnaker in cache and size seems ok"
            else
              echo "Downloading spinnaker to cache as not found"
-             /c/python27/python $APPVEYOR_BUILD_FOLDER/ci/gDownload.py 1sjFe7KyvjxPEmEFp9xP3wIs3QCOHAN1m /c/Downloads/Spinnaker_Binaries_v140_x64.msi
-             /c/python27/python $APPVEYOR_BUILD_FOLDER/ci/gDownload.py 1gLfpCE3XkcXbWaoFqT6kQqQm_EO55vYS /c/Downloads/Spinnaker_SourceCode_v140_x64.msi
+             /c/python27/python $APPVEYOR_BUILD_FOLDER/ci/gDownload.py 1xIqjBwl3Q9GnEPcs9JdZBJNmOSWD8gRE /c/Downloads/Spinnaker_1.27.0.48_Binaries_v140_x64.msi
+             /c/python27/python $APPVEYOR_BUILD_FOLDER/ci/gDownload.py 1l74LjV8rANk_P_CvXZOMSzi7J02YVkfD /c/Downloads/Spinnaker_1.27.0.48_SourceCode_v140_x64.msi
            fi
            # we can get these msi files by starting the installation from the exe file
-           cmd.exe //c 'msiexec /quiet /i C:\Downloads\Spinnaker_Binaries_v140_x64.msi ADDLOCAL=ALL'
-           cmd.exe //c 'msiexec /quiet /i C:\Downloads\Spinnaker_SourceCode_v140_x64.msi ADDLOCAL=ALL'
+           cmd.exe //c 'msiexec /quiet /i C:\Downloads\Spinnaker_1.27.0.48_Binaries_v140_x64.msi ADDLOCAL=ALL'
+           cmd.exe //c 'msiexec /quiet /i C:\Downloads\Spinnaker_1.27.0.48_SourceCode_v140_x64.msi ADDLOCAL=ALL'
        elif [ "$OS" == "windows-x86" ]; then
-           if [[ $(find /c/Downloads/Spinnaker_*_v140_x86.msi -type f -size +1000000c 2>/dev/null) ]]; then
+           if [[ $(find /c/Downloads/Spinnaker_1.27.0.48_*_v140_x86.msi -type f -size +1000000c 2>/dev/null) ]]; then
              echo "Found spinnaker32 in cache and size seems ok"
            else
              echo "Downloading spinnaker32 to cache as not found"
-             /c/python27/python $APPVEYOR_BUILD_FOLDER/ci/gDownload.py 1YJcLAaf8Bf2XzC7Puv4ZwXdibdmVcwNg /c/Downloads/Spinnaker_Binaries_v140_x86.msi
-             /c/python27/python $APPVEYOR_BUILD_FOLDER/ci/gDownload.py 1BG51avW4q605c2KGGJ3ehjhUlVFBObqh /c/Downloads/Spinnaker_SourceCode_v140_x86.msi
+             /c/python27/python $APPVEYOR_BUILD_FOLDER/ci/gDownload.py 1kufOTKKEGXbaQemjRi8Zy2H98FkL-k6W /c/Downloads/Spinnaker_1.27.0.48_Binaries_v140_x86.msi
+             /c/python27/python $APPVEYOR_BUILD_FOLDER/ci/gDownload.py 1FNweWcn-keLqvy56xqz3Ve_T3adz43rW /c/Downloads/Spinnaker_1.27.0.48_SourceCode_v140_x86.msi
            fi
            # we can get these msi files by starting the installation from the exe file
-           cmd.exe //c 'msiexec /quiet /i C:\Downloads\Spinnaker_Binaries_v140_x86.msi ADDLOCAL=ALL'
-           cmd.exe //c 'msiexec /quiet /i C:\Downloads\Spinnaker_SourceCode_v140_x86.msi ADDLOCAL=ALL'
+           cmd.exe //c 'msiexec /quiet /i C:\Downloads\Spinnaker_1.27.0.48_Binaries_v140_x86.msi ADDLOCAL=ALL'
+           cmd.exe //c 'msiexec /quiet /i C:\Downloads\Spinnaker_1.27.0.48_SourceCode_v140_x86.msi ADDLOCAL=ALL'
        fi
        echo "Finished spinnaker install"
 fi
 
 if [ "$PROJ" == "mkl" ]; then
        echo Installing mkl 
-       curl -L  -o mkl.exe "http://registrationcenter-download.intel.com/akdlm/irc_nas/tec/15806/w_mkl_2019.5.281.exe"
+       curl -L  -o mkl.exe "https://registrationcenter-download.intel.com/akdlm/irc_nas/tec/17173/w_mkl_2020.4.311.exe"
        ./mkl.exe --s --x --f .
        ./install.exe install --output=mkllog.txt -eula=accept
        sleep 60
@@ -114,18 +115,26 @@ if [ "$PROJ" == "mkl" ]; then
        echo Finished mkl 
 fi
 
-if [ "$PROJ" == "cuda" ] || [ "$EXT" == "-gpu" ]; then
+if [ "$PROJ" == "cuda" ] || [ "$PROJ" == "tensorrt" ] || [ "$EXT" == "-gpu" ]; then
        echo Installing cuda 
-       curl -L -o cuda_10.1.243_426.00_windows.exe "http://developer.download.nvidia.com/compute/cuda/10.1/Prod/local_installers/cuda_10.1.243_426.00_windows.exe"
-       curl -L -o cudnn-10.1-windows7-x64-v7.6.4.38.zip "https://developer.download.nvidia.com/compute/redist/cudnn/v7.6.4/cudnn-10.1-windows7-x64-v7.6.4.38.zip"
-       ./cuda_10.1.243_426.00_windows.exe -s
+       curl -L -o cuda_11.1.1_456.81_win10.exe "https://developer.download.nvidia.com/compute/cuda/11.1.1/local_installers/cuda_11.1.1_456.81_win10.exe"
+       curl -L -o cudnn-11.1-windows-x64-v8.0.4.30.zip "https://developer.download.nvidia.com/compute/redist/cudnn/v8.0.4/cudnn-11.1-windows-x64-v8.0.4.30.zip"
+       ./cuda_11.1.1_456.81_win10.exe -s
        sleep 60
-       unzip ./cudnn-10.1-windows7-x64-v7.6.4.38.zip
-       mv ./cuda/bin/*.dll /c/Program\ Files/NVIDIA\ GPU\ Computing\ Toolkit/CUDA/v10.1/bin
-       mv ./cuda/include/*.h /c/Program\ Files/NVIDIA\ GPU\ Computing\ Toolkit/CUDA/v10.1/include
-       mv ./cuda/lib/x64/*.lib /c/Program\ Files/NVIDIA\ GPU\ Computing\ Toolkit/CUDA/v10.1/lib/x64
+       unzip ./cudnn-11.1-windows-x64-v8.0.4.30.zip
+       mv ./cuda/bin/*.dll /c/Program\ Files/NVIDIA\ GPU\ Computing\ Toolkit/CUDA/v11.1/bin
+       mv ./cuda/include/*.h /c/Program\ Files/NVIDIA\ GPU\ Computing\ Toolkit/CUDA/v11.1/include
+       mv ./cuda/lib/x64/*.lib /c/Program\ Files/NVIDIA\ GPU\ Computing\ Toolkit/CUDA/v11.1/lib/x64
        echo Finished cuda install
 fi 
+
+if [ "$PROJ" == "tensorrt" ] || [ "$EXT" == "-gpu" ]; then
+       echo Installing tensorrt 
+       /c/python27/python $APPVEYOR_BUILD_FOLDER/ci/gDownload.py 1wp0W7FyEFpEI92uIDWWRvgEsvqMhqXEe /c/Downloads/tensorrt.zip
+       unzip -o /c/Downloads/tensorrt.zip -d /c/Program\ Files/NVIDIA\ GPU\ Computing\ Toolkit/
+       ln -sf /c/Program\ Files/NVIDIA\ GPU\ Computing\ Toolkit/TensorRT* /c/Program\ Files/NVIDIA\ GPU\ Computing\ Toolkit/TensorRT
+       echo Finished tensorrt install
+fi
 
 if [ "$PROJ" == "tensorflow" ]; then
        curl -L http://downloads.sourceforge.net/project/swig/swigwin/swigwin-3.0.12/swigwin-3.0.12.zip -o swigwin-3.0.12.zip
@@ -139,39 +148,15 @@ if [ "$PROJ" == "tensorflow" ]; then
        fi
 fi
 
-# copy Python 3.6 back to default installation directory
+# copy Python 3.x back to default installation directory
 cp -a "/c/Python36-x64" "/C/Program Files/Python36"
+cp -a "/c/Python37-x64" "/C/Program Files/Python37"
+cp -a "/c/Python38-x64" "/C/Program Files/Python38"
 
 # install an older less buggy version of GCC
-curl -L -o mingw-w64-i686-gcc-7.3.0-2-any.pkg.tar.xz http://repo.msys2.org/mingw/i686/mingw-w64-i686-gcc-7.3.0-2-any.pkg.tar.xz
-curl -L -o mingw-w64-i686-gcc-ada-7.3.0-2-any.pkg.tar.xz http://repo.msys2.org/mingw/i686/mingw-w64-i686-gcc-ada-7.3.0-2-any.pkg.tar.xz
-curl -L -o mingw-w64-i686-gcc-objc-7.3.0-2-any.pkg.tar.xz http://repo.msys2.org/mingw/i686/mingw-w64-i686-gcc-objc-7.3.0-2-any.pkg.tar.xz
-curl -L -o mingw-w64-i686-gcc-libs-7.3.0-2-any.pkg.tar.xz http://repo.msys2.org/mingw/i686/mingw-w64-i686-gcc-libs-7.3.0-2-any.pkg.tar.xz
-curl -L -o mingw-w64-i686-gcc-fortran-7.3.0-2-any.pkg.tar.xz http://repo.msys2.org/mingw/i686/mingw-w64-i686-gcc-fortran-7.3.0-2-any.pkg.tar.xz
-curl -L -o mingw-w64-i686-gcc-libgfortran-7.3.0-2-any.pkg.tar.xz http://repo.msys2.org/mingw/i686/mingw-w64-i686-gcc-libgfortran-7.3.0-2-any.pkg.tar.xz
-curl -L -o mingw-w64-i686-binutils-2.31.1-1-any.pkg.tar.xz http://repo.msys2.org/mingw/i686/mingw-w64-i686-binutils-2.31.1-1-any.pkg.tar.xz
-curl -L -o mingw-w64-i686-crt-git-6.0.0.5136.897300fe-1-any.pkg.tar.xz http://repo.msys2.org/mingw/i686/mingw-w64-i686-crt-git-6.0.0.5136.897300fe-1-any.pkg.tar.xz
-curl -L -o mingw-w64-i686-tools-git-6.0.0.5111.3bc5ab74-1-any.pkg.tar.xz http://repo.msys2.org/mingw/i686/mingw-w64-i686-tools-git-6.0.0.5111.3bc5ab74-1-any.pkg.tar.xz
-curl -L -o mingw-w64-i686-headers-git-6.0.0.5136.897300fe-1-any.pkg.tar.xz http://repo.msys2.org/mingw/i686/mingw-w64-i686-headers-git-6.0.0.5136.897300fe-1-any.pkg.tar.xz
-curl -L -o mingw-w64-i686-libmangle-git-6.0.0.5079.3b7a42fd-1-any.pkg.tar.xz http://repo.msys2.org/mingw/i686/mingw-w64-i686-libmangle-git-6.0.0.5079.3b7a42fd-1-any.pkg.tar.xz
-curl -L -o mingw-w64-i686-winstorecompat-git-5.0.0.4760.d3089b5-1-any.pkg.tar.xz http://repo.msys2.org/mingw/i686/mingw-w64-i686-winstorecompat-git-5.0.0.4760.d3089b5-1-any.pkg.tar.xz
-curl -L -o mingw-w64-i686-winpthreads-git-6.0.0.5134.2416de71-1-any.pkg.tar.xz http://repo.msys2.org/mingw/i686/mingw-w64-i686-winpthreads-git-6.0.0.5134.2416de71-1-any.pkg.tar.xz
-curl -L -o mingw-w64-i686-libwinpthread-git-6.0.0.5134.2416de71-1-any.pkg.tar.xz http://repo.msys2.org/mingw/i686/mingw-w64-i686-libwinpthread-git-6.0.0.5134.2416de71-1-any.pkg.tar.xz
-curl -L -o mingw-w64-x86_64-gcc-7.3.0-2-any.pkg.tar.xz http://repo.msys2.org/mingw/x86_64/mingw-w64-x86_64-gcc-7.3.0-2-any.pkg.tar.xz
-curl -L -o mingw-w64-x86_64-gcc-ada-7.3.0-2-any.pkg.tar.xz http://repo.msys2.org/mingw/x86_64/mingw-w64-x86_64-gcc-ada-7.3.0-2-any.pkg.tar.xz
-curl -L -o mingw-w64-x86_64-gcc-objc-7.3.0-2-any.pkg.tar.xz http://repo.msys2.org/mingw/x86_64/mingw-w64-x86_64-gcc-objc-7.3.0-2-any.pkg.tar.xz
-curl -L -o mingw-w64-x86_64-gcc-libs-7.3.0-2-any.pkg.tar.xz http://repo.msys2.org/mingw/x86_64/mingw-w64-x86_64-gcc-libs-7.3.0-2-any.pkg.tar.xz
-curl -L -o mingw-w64-x86_64-gcc-fortran-7.3.0-2-any.pkg.tar.xz http://repo.msys2.org/mingw/x86_64/mingw-w64-x86_64-gcc-fortran-7.3.0-2-any.pkg.tar.xz
-curl -L -o mingw-w64-x86_64-gcc-libgfortran-7.3.0-2-any.pkg.tar.xz http://repo.msys2.org/mingw/x86_64/mingw-w64-x86_64-gcc-libgfortran-7.3.0-2-any.pkg.tar.xz
-curl -L -o mingw-w64-x86_64-binutils-2.31.1-1-any.pkg.tar.xz http://repo.msys2.org/mingw/x86_64/mingw-w64-x86_64-binutils-2.31.1-1-any.pkg.tar.xz
-curl -L -o mingw-w64-x86_64-crt-git-6.0.0.5136.897300fe-1-any.pkg.tar.xz http://repo.msys2.org/mingw/x86_64/mingw-w64-x86_64-crt-git-6.0.0.5136.897300fe-1-any.pkg.tar.xz
-curl -L -o mingw-w64-x86_64-tools-git-6.0.0.5111.3bc5ab74-1-any.pkg.tar.xz http://repo.msys2.org/mingw/x86_64/mingw-w64-x86_64-tools-git-6.0.0.5111.3bc5ab74-1-any.pkg.tar.xz
-curl -L -o mingw-w64-x86_64-headers-git-6.0.0.5136.897300fe-1-any.pkg.tar.xz http://repo.msys2.org/mingw/x86_64/mingw-w64-x86_64-headers-git-6.0.0.5136.897300fe-1-any.pkg.tar.xz
-curl -L -o mingw-w64-x86_64-libmangle-git-6.0.0.5079.3b7a42fd-1-any.pkg.tar.xz http://repo.msys2.org/mingw/x86_64/mingw-w64-x86_64-libmangle-git-6.0.0.5079.3b7a42fd-1-any.pkg.tar.xz
-curl -L -o mingw-w64-x86_64-winstorecompat-git-5.0.0.4760.d3089b5-1-any.pkg.tar.xz http://repo.msys2.org/mingw/x86_64/mingw-w64-x86_64-winstorecompat-git-5.0.0.4760.d3089b5-1-any.pkg.tar.xz
-curl -L -o mingw-w64-x86_64-winpthreads-git-6.0.0.5134.2416de71-1-any.pkg.tar.xz http://repo.msys2.org/mingw/x86_64/mingw-w64-x86_64-winpthreads-git-6.0.0.5134.2416de71-1-any.pkg.tar.xz
-curl -L -o mingw-w64-x86_64-libwinpthread-git-6.0.0.5134.2416de71-1-any.pkg.tar.xz http://repo.msys2.org/mingw/x86_64/mingw-w64-x86_64-libwinpthread-git-6.0.0.5134.2416de71-1-any.pkg.tar.xz
-pacman -U --noconfirm *.pkg.tar.xz
+#/c/python27/python $APPVEYOR_BUILD_FOLDER/ci/gDownload.py 1CmH1Eq0LoAQQ5mWaqYiU9kYOfMGjLXlz /c/Downloads/mingw-w64-old.tar
+#tar xvf /c/Downloads/mingw-w64-old.tar
+#pacman -U --noconfirm *.pkg.tar.xz
 
 # get rid of some stuff we don't use to avoid running out of disk space and that may actually interfere with our builds
 rm -Rf /c/go*
@@ -187,6 +172,17 @@ rm -Rf /c/Program\ Files\ \(x86\)/Microsoft\ DirectX\ SDK*
 rm -Rf /c/Program\ Files\ \(x86\)/Microsoft\ Visual\ Studio/2017/Community/VC/Tools/MSVC/14.12*
 rm -Rf /c/Program\ Files\ \(x86\)/Microsoft\ Visual\ Studio/2017/Community/VC/Redist/MSVC/14.12*
 rm -Rf /c/Program\ Files\ \(x86\)/Microsoft\ Visual\ Studio/2017/Community/VC/Auxiliary/Build/14.12/
+rm -Rf /c/Program\ Files\ \(x86\)/Microsoft\ Visual\ Studio/2019/Community/VC/Tools/MSVC/14.16*
+rm -Rf /c/Program\ Files\ \(x86\)/Microsoft\ Visual\ Studio/2019/Community/VC/Redist/MSVC/14.16*
+rm -Rf /c/Program\ Files\ \(x86\)/Microsoft\ Visual\ Studio/2019/Community/VC/Auxiliary/Build/14.16/
+rm -Rf /c/Program\ Files\ \(x86\)/Microsoft\ Visual\ Studio/2019/Community/VC/Tools/MSVC/14.2[01234567]*
+rm -Rf /c/Program\ Files\ \(x86\)/Microsoft\ Visual\ Studio/2019/Community/VC/Redist/MSVC/14.2[01234567]*
+rm -Rf /c/Program\ Files\ \(x86\)/Microsoft\ Visual\ Studio/2019/Community/VC/Auxiliary/Build/14.2[01234567]/
+ls -l /c/Program\ Files\ \(x86\)/Microsoft\ Visual\ Studio/2019/Community/VC/Tools/MSVC/
+ls -l /c/Program\ Files\ \(x86\)/Microsoft\ Visual\ Studio/2019/Community/VC/Redist/MSVC/
+ls -l /c/Program\ Files\ \(x86\)/Microsoft\ Visual\ Studio/2019/Community/VC/Auxiliary/Build/
+rm -Rf /usr/bin/link.exe
+pacman -Rc --noconfirm python python2 mingw-w64-i686-python3 mingw-w64-x86_64-python3
 df -h
 
 # try to download partial builds, which doesn't work from AppVeyor's hosted VMs always returning "Connection state changed (MAX_CONCURRENT_STREAMS == 100)!" for some reason
